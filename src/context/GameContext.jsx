@@ -110,6 +110,7 @@ export function GameProvider({ children }) {
 
   const resetRound = () => {
     setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
+    channelRef.current?.postMessage({ type: 'RESET_ROUND' });
   };
 
   const exitGame = () => {
@@ -201,6 +202,11 @@ export function GameProvider({ children }) {
           payload.players.find((pl) => pl.id === p.id) ? { ...p, status: 'idle' } : p
         );
         broadcastPlayers(updated);
+        return;
+      }
+
+      if (type === 'RESET_ROUND') {
+        setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
         return;
       }
     };
