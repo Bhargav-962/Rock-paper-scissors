@@ -1,12 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   Button, 
   Stack, 
   Typography, 
-  Dialog, 
-  DialogTitle, 
-  DialogContent, 
-  DialogActions,
   Box,
   Card,
   CardContent,
@@ -24,12 +20,13 @@ import {
 } from '@mui/icons-material';
 import { useGame } from '../context/GameContext';
 import { GAME_OPTIONS } from '../constants';
+import GameRulesDialog from './GameRulesDialog';
 
 const GameArea = () => {
   const { currentPlayer, activeGame, submitChoice, resetRound, exitGame } = useGame();
   const [showHint, setShowHint] = useState(false);
 
-  if (!activeGame || !currentPlayer) {
+  if (!activeGame.participants.length || !currentPlayer) {
     return (
       <Card sx={{ 
         maxWidth: 600, 
@@ -51,7 +48,7 @@ const GameArea = () => {
     );
   }
 
-  const opponent = activeGame.players.find((p) => p.id !== currentPlayer.id);
+  const opponent = activeGame.participants.find((p) => p.id !== currentPlayer.id);
   const myChoice = activeGame.choices?.[currentPlayer.id];
   const oppChoice = activeGame.choices?.[opponent.id];
   const { result } = activeGame;
@@ -62,8 +59,8 @@ const GameArea = () => {
     }
   };
 
-  const getResultText = () => {
-    if (!result) return 'Waiting for choices...';
+  const getResultText = (opponentName) => {
+    if (!result) return `Waiting for ${opponentName} to choose...`;
     if (result === 'draw') return 'It\'s a Draw!';
     if (result === currentPlayer.id) return 'You Win!';
     return 'You Lose';
@@ -120,10 +117,7 @@ const GameArea = () => {
 
             {/* Game Choices */}
             <Stack spacing={3} alignItems="center" sx={{ width: '100%' }}>
-              <Typography variant="h6" color="text.secondary">
-                Choose your weapon!
-              </Typography>
-              
+              <Typography variant="h6" color="text.secondary">Choose your weapon!</Typography>
               <Stack direction="row" spacing={2} justifyContent="center">
                 {GAME_OPTIONS.map((option) => (
                   <Zoom in timeout={300} key={option.name}>
@@ -172,7 +166,7 @@ const GameArea = () => {
               {!result && (
                 <Box sx={{ width: '100%', maxWidth: 400 }}>
                   <Typography variant="body2" color="text.secondary" gutterBottom textAlign="center">
-                    {bothPlayersChosen ? 'Revealing choices...' : 'Waiting for choices...'}
+                    {myChoice ? `Waiting for ${opponent.username} to choose...` : 'Waiting for choices...'}
                   </Typography>
                   <LinearProgress 
                     variant="determinate" 
@@ -255,7 +249,7 @@ const GameArea = () => {
                       mb: 1
                     }}
                   >
-                    {getResultText()}
+                    {getResultText(opponent.username)}
                   </Typography>
                   {result && result !== 'draw' && (
                     <Typography variant="body2" color="text.secondary">
@@ -322,98 +316,10 @@ const GameArea = () => {
         </CardContent>
       </Card>
 
-      {/* Hint Dialog */}
-      <Dialog 
+      <GameRulesDialog 
         open={showHint} 
-        onClose={() => setShowHint(false)}
-        maxWidth="sm"
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)'
-          }
-        }}
-      >
-        <DialogTitle>
-          <Typography variant="h4" component="div" textAlign="center" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
-            🎮 How to Play
-          </Typography>
-        </DialogTitle>
-        <DialogContent>
-          <Stack spacing={4} sx={{ py: 2 }}>
-            <Stack direction="row" spacing={4} justifyContent="center">
-              {GAME_OPTIONS.map((option) => (
-                <Card key={option.name} sx={{ 
-                  textAlign: 'center', 
-                  minWidth: 120,
-                  border: '2px solid',
-                  borderColor: option.color,
-                  borderRadius: 3,
-                  '&:hover': {
-                    transform: 'scale(1.05)',
-                    boxShadow: `0 6px 20px ${option.color}40`
-                  },
-                  transition: 'all 0.3s ease'
-                }}>
-                  <CardContent>
-                    <Typography variant="h2" sx={{ mb: 1 }}>{option.emoji}</Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: option.color, mb: 1 }}>
-                      {option.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      beats {option.beats}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              ))}
-            </Stack>
-            <Divider />
-            <Box textAlign="center">
-              <Typography 
-                variant="h6" 
-                sx={{ 
-                  fontWeight: 600,
-                  color: 'primary.main',
-                  mb: 1 
-                }}
-              >
-                🎯 Game Rules
-              </Typography>
-              <Typography 
-                variant="body1" 
-                textAlign="center" 
-                sx={{ 
-                  color: 'text.secondary',
-                  lineHeight: 1.6
-                }}
-              >
-                Choose your weapon and challenge other players! <br />
-                Both players choose simultaneously, and the winner is determined by the classic rules above.
-              </Typography>
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pb: 3 }}>
-          <Button 
-            onClick={() => setShowHint(false)} 
-            variant="contained" 
-            size="large"
-            sx={{
-              borderRadius: 3,
-              px: 4,
-              textTransform: 'none',
-              fontWeight: 600,
-              background: 'linear-gradient(45deg, #4CAF50, #45a049)',
-              '&:hover': {
-                background: 'linear-gradient(45deg, #45a049, #4CAF50)'
-              }
-            }}
-          >
-            Got it! Let's Play! 🚀
-          </Button>
-        </DialogActions>
-      </Dialog>
+        onClose={() => setShowHint(false)} 
+      />
     </>
   );
 };

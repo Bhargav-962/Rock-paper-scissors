@@ -5,6 +5,12 @@ import { PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
 
 const GameContext = createContext();
 
+const activeGameInitial = {
+  participants: [],
+  choices: {},
+  result: null
+}
+
 export function GameProvider({ children }) {
   const [players, setPlayers] = useState(() => getPlayers());
   const [currentPlayer, setCurrentPlayer] = useState(() => {
@@ -15,42 +21,45 @@ export function GameProvider({ children }) {
       return null;
     }
   });
-
-  const [activeGame, setActiveGame] = useState(null);
-
+  const [activeGame, setActiveGame] = useState(activeGameInitial);
   const channelRef = useRef(getChannel());
 
-  const broadcastPlayers = (updated) => {
-    savePlayers(updated);
-    setPlayers(updated);
+  const broadcastPlayerListUpdate = (players) => {
+    savePlayers(players);
+    setPlayers(players);
     // Updates the player list across other tabs
-    channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
+    channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players } });
   };
 
   const playGame = (opponent) => {
     if (!currentPlayer || !opponent) return;
-    
-    // Start the game directly with current player and opponent
-    const p1 = currentPlayer;
-    const p2 = opponent;
-    
-    // Notify other tabs about the game start
-    channelRef.current?.postMessage({ 
-      type: MESSAGE_TYPES.START_GAME, 
-      payload: { players: [p1, p2] } 
+    // Start the game with current player and opponent
+    const participants = [currentPlayer, opponent];
+    const updatedParticipantsList = participants.map(player => {
+      return { ...player, status: PLAYER_STATUS.IN_GAME };
     });
-    
-    startGame(p1, p2);
+
+    // Notify other tabs about the game start
+    channelRef.current?.postMessage({
+      type: MESSAGE_TYPES.START_GAME,
+      payload: { participants: updatedParticipantsList }
+    });
+    const updatedPlayersList = players.map(player =>
+      updatedParticipantsList.find(p => p.id === player.id) || player
+    );
+    broadcastPlayerListUpdate(updatedPlayersList);
+    setActiveGame({ participants: updatedParticipantsList, choices: {}, result: null });
   };
 
+  // Updates player list for current user and broadcasts it to other users
   const updatePlayerList = (player, isCurrentPlayer = false) => {
     try {
       sessionStorage.setItem(CURRENT_PLAYER_KEY, JSON.stringify(player));
-    } catch {}
+    } catch { }
     if (isCurrentPlayer) {
       setCurrentPlayer(player);
     }
-    broadcastPlayers([...players, player]);
+    broadcastPlayerListUpdate([...players, player]);
   };
 
   const logout = () => {
@@ -60,38 +69,36 @@ export function GameProvider({ children }) {
       channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
       sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       setCurrentPlayer(null);
-      setActiveGame(null);
-    } catch {}
+      setActiveGame(activeGameInitial);
+    } catch { }
   };
 
-  const startGame = (p1, p2) => {
-    const updated = players.map((p) =>
-      p.id === p1.id ? { ...p, status: PLAYER_STATUS.IN_GAME } : p.id === p2.id ? { ...p, status: PLAYER_STATUS.IN_GAME } : p
-    );
-    broadcastPlayers(updated);
-    setActiveGame({ players: [p1, p2], choices: {}, result: null });
+  const updateUserChoice = (choices, result = null) => {
+    setActiveGame({ ...activeGame, choices, result });
+
+    // Broadcast the choice submission to other tabs
+    channelRef.current?.postMessage({
+      type: MESSAGE_TYPES.CHOICE_SUBMITTED,
+      payload: { choices, result }
+    });
   };
 
   const submitChoice = (playerId, choice) => {
-    setActiveGame((prev) => {
-      if (!prev) return prev;
-      const newChoices = { ...(prev.choices || {}), [playerId]: choice };
-      channelRef.current?.postMessage({ type: MESSAGE_TYPES.CHOICE_SUBMITTED, payload: { playerId, choice } });
+    const newChoices = { ...(activeGame.choices || {}), [playerId]: choice };
+    let finalResult = null;
 
-      let result = prev.result;
-      if (Object.keys(newChoices).length === 2) {
-        const [a, b] = prev.players;
-        result = decideWinner(a.id, newChoices[a.id], b.id, newChoices[b.id]);
-        if (result !== 'draw') {
-          const updatedPlayers = players.map((pl) =>
-            pl.id === result ? { ...pl, score: (pl.score || 0) + 1 } : pl
-          );
-          console.log("==>new choices",newChoices, updatedPlayers )
-          broadcastPlayers(updatedPlayers);
-        }
+    if (Object.keys(newChoices).length === 2) {
+      const [a, b] = activeGame.participants;
+      finalResult = decideWinner(a.id, newChoices[a.id], b.id, newChoices[b.id]);
+      if (finalResult !== 'draw') {
+        const updatedPlayers = players.map((pl) =>
+          pl.id === finalResult ? { ...pl, score: (pl.score || 0) + 1 } : pl
+        );
+        broadcastPlayerListUpdate(updatedPlayers);
       }
-      return { ...prev, choices: newChoices, result };
-    });
+    }
+
+    updateUserChoice(newChoices, finalResult);
   };
 
   const resetRound = () => {
@@ -100,13 +107,13 @@ export function GameProvider({ children }) {
   };
 
   const exitGame = () => {
-    if (!activeGame) return;
-    const [p1, p2] = activeGame.players;
+    if (!activeGame.participants.length) return;
+    const [p1, p2] = activeGame.participants;
     const updated = players.map((p) =>
       p.id === p1.id || p.id === p2.id ? { ...p, status: PLAYER_STATUS.IDLE } : p
     );
-    broadcastPlayers(updated);
-    setActiveGame(null);
+    broadcastPlayerListUpdate(updated);
+    setActiveGame(activeGameInitial);
     channelRef.current?.postMessage({ type: MESSAGE_TYPES.EXIT_GAME, payload: { players: [p1, p2] } });
   };
 
@@ -135,39 +142,18 @@ export function GameProvider({ children }) {
           break;
 
         case MESSAGE_TYPES.START_GAME:
-          const { players: gamePlayers } = payload;
+          const { participants: gamePlayers } = payload;
           if (currentPlayer && gamePlayers.find(p => p.id === currentPlayer.id)) {
-            startGame(gamePlayers[0], gamePlayers[1]);
+            setActiveGame({ participants: gamePlayers, choices: {}, result: null });
           }
           break;
 
         case MESSAGE_TYPES.CHOICE_SUBMITTED:
-          setActiveGame((prev) => {
-            if (!prev) return prev;
-            const choices = { ...(prev.choices || {}), [payload.playerId]: payload.choice };
-            let result = prev.result;
-
-            if (Object.keys(choices).length === 2 && !result) {
-              const [a, b] = prev.players;
-              result = decideWinner(a.id, choices[a.id], b.id, choices[b.id]);
-
-              if (result !== 'draw') {
-                const updatedPlayers = players.map((pl) =>
-                  pl.id === result ? { ...pl, score: (pl.score || 0) + 1 } : pl
-                );
-                broadcastPlayers(updatedPlayers);
-              }
-            }
-            return { ...prev, choices, result };
-          });
+          setActiveGame((prev) => ({ ...prev, choices: payload.choices, result: payload.result }));
           break;
 
         case MESSAGE_TYPES.EXIT_GAME:
-          setActiveGame(null);
-          const updated = players.map((p) =>
-            payload.players.find((pl) => pl.id === p.id) ? { ...p, status: PLAYER_STATUS.IDLE } : p
-          );
-          broadcastPlayers(updated);
+          setActiveGame(activeGameInitial);
           break;
 
         case MESSAGE_TYPES.RESET_ROUND:
@@ -182,7 +168,7 @@ export function GameProvider({ children }) {
 
     ch.addEventListener('message', handler);
     return () => ch.removeEventListener('message', handler);
-  }, [currentPlayer]);
+  }, [currentPlayer?.id]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -194,7 +180,7 @@ export function GameProvider({ children }) {
           channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
         }
         sessionStorage.removeItem(CURRENT_PLAYER_KEY);
-      } catch {}
+      } catch { }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
