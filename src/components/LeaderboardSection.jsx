@@ -13,9 +13,22 @@ export default function Leaderboard() {
         <Typography variant="h6">Leaderboard</Typography>
         {sorted.length === 0 && <Typography>No players yet</Typography>}
         {sorted.map((p) => (
-          <Typography key={p.id}>
-            {p.username}{isCurrentPlayerInGame(p.id) ? ' (You)' : ''} — {p.score || 0} pts
-          </Typography>
+          <Stack key={p.id} direction="row" spacing={1} alignItems="center">
+            <Typography 
+              sx={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                maxWidth: '150px',
+                flex: 1
+              }}
+            >
+              {p.username}{isCurrentPlayerInGame(p.id) ? ' (You)' : ''}
+            </Typography>
+            <Typography sx={{ flexShrink: 0 }}>
+              — {p.score || 0} pts
+            </Typography>
+          </Stack>
         ))}
       </Stack>
     </Paper>

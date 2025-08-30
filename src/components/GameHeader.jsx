@@ -10,7 +10,16 @@ const GameHeader = ({ opponent, result, onShowRules, onForfeit }) => {
   return (
     <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={styles.headerStack}>
       <GameIcon color="primary" />
-      <Typography variant="h4" sx={styles.title}>
+      <Typography 
+        variant="h4" 
+        sx={{
+          ...styles.title,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '200px'
+        }}
+      >
         VS {opponent.username}
       </Typography>
       <Stack direction="row" spacing={1}>

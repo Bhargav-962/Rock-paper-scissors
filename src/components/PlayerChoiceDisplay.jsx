@@ -43,7 +43,17 @@ const PlayerChoiceDisplay = ({
       ...getCardStyle()
     }}>
       <CardContent>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+        <Typography 
+          variant="subtitle2" 
+          color="text.secondary" 
+          gutterBottom
+          sx={{
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            maxWidth: '120px'
+          }}
+        >
           {playerName}
         </Typography>
         <Typography variant="h2" sx={styles.emojiText}>

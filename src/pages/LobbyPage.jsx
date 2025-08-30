@@ -44,7 +44,16 @@ export default function LobbyPage() {
           }}>
             <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
               <Box textAlign="center">
-                <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                <Typography 
+                  variant="h4" 
+                  sx={{ 
+                    fontWeight: 'bold',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '300px'
+                  }}
+                >
                   Welcome, {currentPlayer.username}!
                 </Typography>
                 <Typography variant="subtitle1" sx={{ opacity: 0.9 }}>

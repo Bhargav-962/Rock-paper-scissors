@@ -5,7 +5,16 @@ export default function PlayerListItem({ player, idx, playGame, isDisabled }) {
     return (
         <Stack key={player.id} direction="row" alignItems="center" justifyContent="space-between">
             <Stack direction="row" spacing={2} alignItems="center">
-                <Typography>{idx + 1}. {player.username}</Typography>
+                <Typography 
+                  sx={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    maxWidth: '100px'
+                  }}
+                >
+                  {idx + 1}. {player.username}
+                </Typography>
                 <Chip
                     label={PLAYER_STATUS_LABELS[player.status]}
                     size="small"

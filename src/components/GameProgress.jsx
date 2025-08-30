@@ -4,7 +4,18 @@ import { styles } from './GameArea.styles';
 const GameProgress = ({ myChoice, opponent, bothPlayersChosen }) => {
   return (
     <Box sx={styles.progressContainer}>
-      <Typography variant="body2" color="text.secondary" gutterBottom textAlign="center">
+      <Typography 
+        variant="body2" 
+        color="text.secondary" 
+        gutterBottom 
+        textAlign="center"
+        sx={{
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          maxWidth: '250px'
+        }}
+      >
         {myChoice ? `Waiting for ${opponent.username} to choose...` : 'Waiting for choices...'}
       </Typography>
       <LinearProgress 
