@@ -2,35 +2,21 @@ import { createTheme } from '@mui/material/styles';
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
     primary: { 
       main: '#2196f3',
-      dark: '#1976d2',
-      light: '#64b5f6'
+      dark: '#1976d2'
     },
     secondary: { 
-      main: '#ff5722',
-      dark: '#d84315',
-      light: '#ff8a65'
+      main: '#ff5722'
     },
     success: {
-      main: '#4caf50',
-      dark: '#388e3c',
-      light: '#81c784'
+      main: '#4caf50'
     },
     warning: {
-      main: '#ff9800',
-      dark: '#f57c00',
-      light: '#ffb74d'
+      main: '#ff9800'
     },
     error: {
-      main: '#f44336',
-      dark: '#d32f2f',
-      light: '#ef5350'
-    },
-    background: {
-      default: '#f5f7fa',
-      paper: '#ffffff'
+      main: '#f44336'
     },
     text: {
       primary: '#2c3e50',
@@ -39,18 +25,6 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontWeight: 700,
-      letterSpacing: '-0.02em'
-    },
-    h2: {
-      fontWeight: 700,
-      letterSpacing: '-0.01em'
-    },
-    h3: {
-      fontWeight: 600,
-      letterSpacing: '-0.01em'
-    },
     h4: {
       fontWeight: 600
     },
@@ -64,9 +38,6 @@ const theme = createTheme({
       textTransform: 'none',
       fontWeight: 600
     }
-  },
-  shape: {
-    borderRadius: 12
   },
   components: {
     MuiButton: {
@@ -135,14 +106,6 @@ const theme = createTheme({
         root: {
           borderRadius: 8,
           fontWeight: 500
-        }
-      }
-    },
-    MuiLinearProgress: {
-      styleOverrides: {
-        root: {
-          borderRadius: 8,
-          height: 8
         }
       }
     }

@@ -3,7 +3,7 @@ import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
 import { WAIT_QUEUE_KEY } from '../constants';
 
-const GameContext = createContext(null);
+const GameContext = createContext();
 
 export function GameProvider({ children }) {
   const [players, setPlayers] = useState(() => getPlayers());

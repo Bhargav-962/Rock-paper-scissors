@@ -13,29 +13,50 @@ import {
 } from '@mui/material';
 import { 
   SportsEsports as GameIcon,
-  Login as LoginIcon 
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { generateId } from '../utils/id';
+import useLoginValidation from '../hooks/useLoginValidation';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
-  const { players, registerPlayer } = useGame();
+  const { players, registerPlayer, currentPlayer } = useGame();
+
+  // Filter out current player from validation to avoid duplicate error on re-login
+  const playersForValidation = players.filter(player => 
+    !currentPlayer || player.id !== currentPlayer.id
+  );
+
+  // Use validation hook
+  const { displayErrors, formFocused, validationErrors, isFormValid } = useLoginValidation(
+    { username }, 
+    playersForValidation
+  );
 
   const handleSubmit = (e) => {
     e?.preventDefault();
-    const name = username.trim();
-    if (!name) return;
-    const taken = players.some((p) => p.username.toLowerCase() === name.toLowerCase());
-    if (taken) {
-      alert('Username already taken in another tab. Choose another one.');
+    
+    // Trigger display of all errors
+    formFocused();
+    
+    if (!isFormValid) {
       return;
     }
+
+    const name = username.trim();
     const player = { id: generateId(), username: name, score: 0 };
     registerPlayer(player);
     navigate('/lobby');
+  };
+
+  const handleUsernameChange = (e) => {
+    setUsername(e.target.value);
+  };
+
+  const handleUsernameBlur = () => {
+    formFocused('username');
   };
 
   return (
@@ -80,49 +101,30 @@ export default function LoginPage() {
                       Enter your username to start playing
                     </Typography>
                   </Box>
-                  
                   <TextField 
-                    label="Username" 
+                    label="Enter your username" 
                     value={username} 
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={handleUsernameChange}
+                    onBlur={handleUsernameBlur}
                     variant="outlined"
                     fullWidth
                     required
                     autoFocus
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        '&:hover fieldset': {
-                          borderColor: 'primary.main',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderWidth: 2,
-                        }
-                      }
-                    }}
+                    error={displayErrors.username && validationErrors.username.length > 0}
+                    helperText={
+                      displayErrors.username && validationErrors.username.length > 0
+                        ? validationErrors.username[0]
+                        : ''
+                    }
                   />
                   
                   <Button 
                     variant="contained" 
                     onClick={handleSubmit}
                     size="large"
-                    startIcon={<LoginIcon />}
-                    sx={{
-                      borderRadius: 2,
-                      py: 1.5,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '1.1rem',
-                      background: 'linear-gradient(45deg, #2196F3, #1976D2)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #1976D2, #1565C0)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(33, 150, 243, 0.4)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
+                    disabled={displayErrors.username && !isFormValid}
                   >
-                    Enter Lobby
+                    Enter Arena
                   </Button>
                 </Stack>
               </form>
