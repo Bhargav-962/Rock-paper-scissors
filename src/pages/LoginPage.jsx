@@ -45,7 +45,7 @@ export default function LoginPage() {
     }
     const name = username.trim();
     const player = { id: generateId(), username: name, status: PLAYER_STATUS.IDLE, score: 0 };
-    registerPlayer(player, true); // Set user as the current player
+    registerPlayer(player);
     navigate('/lobby');
   };
 

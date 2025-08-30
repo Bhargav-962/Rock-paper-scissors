@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { validateEmptyField, validateMinLength, validateDuplicateEntry } from "../utils/validations";
+import { validateEmptyField, validateMinLength, validateDuplicateEntry, validateNoSpaces } from "../utils/validations";
 
 const useLoginValidation = (value, existingPlayers = []) => {
     const [displayErrors, setDisplayErrors] = useState({});
@@ -22,6 +22,7 @@ const useLoginValidation = (value, existingPlayers = []) => {
         return [
             validateEmptyField(username, "Username is required"),
             validateMinLength(username, 2, "Username must be at least 2 characters"),
+            validateNoSpaces(username, "Username cannot contain spaces"),
             validateDuplicateEntry(username, existingPlayers, "Username already taken")
         ].filter(Boolean);
     };

@@ -10,3 +10,7 @@ export const validateDuplicateEntry = (text = '', existingUsers = [], errorMessa
     const isDuplicate = existingUsers.some(({ username }) => username.toLowerCase() === text.trim().toLowerCase());
     return isDuplicate ? errorMessage : '';
 }
+
+export const validateNoSpaces = (value = '', errorMessage = '') => {
+    return value.includes(' ') ? errorMessage : '';
+}
