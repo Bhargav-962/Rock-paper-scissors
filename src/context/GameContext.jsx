@@ -28,6 +28,7 @@ export function GameProvider({ children }) {
     submitChoice,
     resetRound,
     exitGame,
+    forfeitGame,
   } = useCommonFunctions(state, dispatch, channelRef.current);
 
   useEffect(() => {
@@ -59,6 +60,14 @@ export function GameProvider({ children }) {
 
         case MESSAGE_TYPES.RESET_ROUND:
           resetGameState(dispatch)();
+          break;
+
+        case MESSAGE_TYPES.FORFEIT_GAME:
+          const { forfeiter, winner } = payload;
+          // Update winner's score if this is not the forfeiter's tab
+          if (currentPlayer?.id !== forfeiter.id) {
+            updateUserResult(dispatch)(winner.id);
+          }
           break;
 
         default:
@@ -100,6 +109,7 @@ export function GameProvider({ children }) {
         submitChoice,
         resetRound,
         exitGame,
+        forfeitGame,
       }}
     >
       {children}

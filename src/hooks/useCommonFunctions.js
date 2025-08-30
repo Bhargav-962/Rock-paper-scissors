@@ -1,5 +1,5 @@
 import { removeCurrentPlayerFromStorage, removePlayerById, saveCurrentPlayerToStorage, savePlayerListToStorage } from "../services/storage";
-import { broadcastChoiceSubmitted, broadcastPlayerListUpdate, broadcastResetRound, broadcastStartGame, broadcastExitGame } from "../utils/broadcast";
+import { broadcastChoiceSubmitted, broadcastPlayerListUpdate, broadcastResetRound, broadcastStartGame, broadcastExitGame, broadcastForfeitGame } from "../utils/broadcast";
 import { PLAYER_STATUS } from "../constants";
 import {
   updatePlayersList,
@@ -108,6 +108,25 @@ export function useCommonFunctions(state, dispatch, channel) {
     broadcastExitGame(channel, [p1, p2]);
   };
 
+  const forfeitGame = () => {
+    if (!activeGame.participants.length || !currentPlayer) return;
+    
+    const opponent = activeGame.participants.find(p => p.id !== currentPlayer.id);
+    if (!opponent) return;
+
+    // Update winner's score
+    const updatedPlayers = players.map((pl) =>
+      pl.id === opponent.id ? { ...pl, score: (pl.score || 0) + 1 } : pl
+    );
+    updatePlayerList(updatedPlayers);
+
+    // Set the result to the opponent (they win by forfeit)
+    updateUserResult(dispatch)(opponent.id);
+    
+    // Broadcast the forfeit to other tabs
+    broadcastForfeitGame(channel, currentPlayer, opponent);
+  };
+
   return {
     registerPlayer,
     logout,
@@ -115,5 +134,6 @@ export function useCommonFunctions(state, dispatch, channel) {
     submitChoice,
     resetRound,
     exitGame,
+    forfeitGame,
   };
 }

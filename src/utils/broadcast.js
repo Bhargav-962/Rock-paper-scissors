@@ -34,6 +34,13 @@ export const broadcastExitGame = (channel, players) => {
   });
 };
 
+export const broadcastForfeitGame = (channel, forfeiter, winner) => {
+  channel?.postMessage({
+    type: MESSAGE_TYPES.FORFEIT_GAME,
+    payload: { forfeiter, winner }
+  });
+};
+
 export const addMessageListener = (channel, handler) => {
   if (!channel) return () => {};
 
