@@ -23,7 +23,7 @@ import { GAME_OPTIONS, PLAYER_STATUS } from '../constants';
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
-  const { players, updatePlayerList, currentPlayer } = useGame();
+  const { players, registerPlayer, currentPlayer } = useGame();
 
   // Filter out current player from validation to avoid duplicate error on re-login
   const playersForValidation = players.filter(player => 
@@ -45,7 +45,7 @@ export default function LoginPage() {
     }
     const name = username.trim();
     const player = { id: generateId(), username: name, status: PLAYER_STATUS.IDLE, score: 0 };
-    updatePlayerList(player, true); // Set user as the current player
+    registerPlayer(player, true); // Set user as the current player
     navigate('/lobby');
   };
 

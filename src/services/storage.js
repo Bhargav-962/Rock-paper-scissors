@@ -1,6 +1,6 @@
 import { PLAYERS_LIST } from '../constants';
 
-export function getPlayers() {
+export function getPlayerListFromStorage() {
   try {
     const raw = localStorage.getItem(PLAYERS_LIST);
     return raw ? JSON.parse(raw) : [];
@@ -9,7 +9,7 @@ export function getPlayers() {
   }
 }
 
-export function savePlayers(players) {
+export function savePlayerListToStorage(players) {
   try {
     localStorage.setItem(PLAYERS_LIST, JSON.stringify(players));
   } catch {}
@@ -17,11 +17,11 @@ export function savePlayers(players) {
 
 export function removePlayerById(id) {
   try {
-    const current = getPlayers();
+    const current = getPlayerListFromStorage();
     const updated = current.filter((p) => p.id !== id);
-    savePlayers(updated);
+    savePlayerListToStorage(updated);
     return updated;
   } catch {
-    return getPlayers();
+    return getPlayerListFromStorage();
   }
 }

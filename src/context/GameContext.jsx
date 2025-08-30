@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getChannel } from '../services/bus';
-import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
+import { getPlayerListFromStorage, savePlayerListToStorage, removePlayerById } from '../services/storage';
 import { PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
 import {
-  broadcastPlayerListUpdate as broadcastPlayerUpdate,
+  broadcastPlayerListUpdate,
   broadcastStartGame,
   broadcastChoiceSubmitted,
   broadcastResetRound,
@@ -20,7 +20,7 @@ const activeGameInitial = {
 }
 
 export function GameProvider({ children }) {
-  const [players, setPlayers] = useState(() => getPlayers());
+  const [players, setPlayers] = useState(() => getPlayerListFromStorage());
   const [currentPlayer, setCurrentPlayer] = useState(() => {
     try {
       const raw = sessionStorage.getItem(CURRENT_PLAYER_KEY);
@@ -32,11 +32,11 @@ export function GameProvider({ children }) {
   const [activeGame, setActiveGame] = useState(activeGameInitial);
   const channelRef = useRef(getChannel());
 
-  const broadcastPlayerListUpdate = (players) => {
-    savePlayers(players);
+  const updatePlayerList = (players) => {
+    savePlayerListToStorage(players);
     setPlayers(players);
     // Updates the player list across other tabs
-    broadcastPlayerUpdate(channelRef.current, players);
+    broadcastPlayerListUpdate(channelRef.current, players);
   };
 
   const playGame = (opponent) => {
@@ -52,26 +52,26 @@ export function GameProvider({ children }) {
     const updatedPlayersList = players.map(player =>
       updatedParticipantsList.find(p => p.id === player.id) || player
     );
-    broadcastPlayerListUpdate(updatedPlayersList);
+    updatePlayerList(updatedPlayersList);
     setActiveGame({ participants: updatedParticipantsList, choices: {}, result: null });
   };
 
   // Updates player list for current user and broadcasts it to other users
-  const updatePlayerList = (player, isCurrentPlayer = false) => {
+  const registerPlayer = (player, isCurrentPlayer = false) => {
     try {
       sessionStorage.setItem(CURRENT_PLAYER_KEY, JSON.stringify(player));
     } catch { }
     if (isCurrentPlayer) {
       setCurrentPlayer(player);
     }
-    broadcastPlayerListUpdate([...players, player]);
+    updatePlayerList([...players, player]);
   };
 
   const logout = () => {
     if (!currentPlayer) return;
     try {
       const updated = removePlayerById(currentPlayer.id);
-      broadcastPlayerUpdate(channelRef.current, updated);
+      broadcastPlayerListUpdate(channelRef.current, updated);
       sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       setCurrentPlayer(null);
       setActiveGame(activeGameInitial);
@@ -96,7 +96,7 @@ export function GameProvider({ children }) {
         const updatedPlayers = players.map((pl) =>
           pl.id === finalResult ? { ...pl, score: (pl.score || 0) + 1 } : pl
         );
-        broadcastPlayerListUpdate(updatedPlayers);
+        updatePlayerList(updatedPlayers);
       }
     }
 
@@ -114,7 +114,7 @@ export function GameProvider({ children }) {
     const updated = players.map((p) =>
       p.id === p1.id || p.id === p2.id ? { ...p, status: PLAYER_STATUS.IDLE } : p
     );
-    broadcastPlayerListUpdate(updated);
+    updatePlayerList(updated);
     setActiveGame(activeGameInitial);
     broadcastExitGame(channelRef.current, [p1, p2]);
   };
@@ -137,7 +137,7 @@ export function GameProvider({ children }) {
 
       switch (type) {
         case MESSAGE_TYPES.PLAYER_LIST_UPDATE:
-          setPlayers(payload.players || getPlayers());
+          setPlayers(payload.players || getPlayerListFromStorage());
           break;
 
         case MESSAGE_TYPES.START_GAME:
@@ -176,7 +176,7 @@ export function GameProvider({ children }) {
         const me = meRaw ? JSON.parse(meRaw) : null;
         if (me?.id) {
           const updated = removePlayerById(me.id);
-          broadcastPlayerUpdate(channelRef.current, updated);
+          broadcastPlayerListUpdate(channelRef.current, updated);
         }
         sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       } catch { }
@@ -186,16 +186,12 @@ export function GameProvider({ children }) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  useEffect(() => {
-    setPlayers(getPlayers());
-  }, []);
-
   return (
     <GameContext.Provider
       value={{
         players,
         currentPlayer,
-        updatePlayerList,
+        registerPlayer,
         logout,
         playGame,
         activeGame,
