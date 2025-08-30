@@ -18,6 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { generateId } from '../utils/id';
 import useLoginValidation from '../hooks/useLoginValidation';
+import { GAME_OPTIONS } from '../constants';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -134,18 +135,12 @@ export default function LoginPage() {
           {/* Game Rules Preview */}
           <Box sx={{ mt: 4, textAlign: 'center' }}>
             <Stack direction="row" spacing={3} justifyContent="center" sx={{ mb: 2 }}>
-              <Box>
-                <Typography variant="h4">🪨</Typography>
-                <Typography variant="caption">Rock</Typography>
-              </Box>
-              <Box>
-                <Typography variant="h4">📄</Typography>
-                <Typography variant="caption">Paper</Typography>
-              </Box>
-              <Box>
-                <Typography variant="h4">✂️</Typography>
-                <Typography variant="caption">Scissors</Typography>
-              </Box>
+              {GAME_OPTIONS.map((option) => (
+                <Box key={option.name}>
+                  <Typography variant="h4">{option.emoji}</Typography>
+                  <Typography variant="caption">{option.name}</Typography>
+                </Box>
+              ))}
             </Stack>
             <Typography variant="body2" color="text.secondary">
               The classic game of strategy and luck

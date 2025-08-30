@@ -1,20 +1,25 @@
-import React from 'react';
 import { 
   Grid, 
   Stack, 
+  styled,
   Typography, 
   Container, 
   Paper,
   Box,
   Fade
 } from '@mui/material';
-import { SportsEsports as GameIcon } from '@mui/icons-material';
 import PlayerList from '../components/PlayerList';
 import Leaderboard from '../components/LeaderboardSection';
 import GameArea from '../components/GameArea';
 import InviteDialog from '../components/InviteDialog';
 import WaitingList from '../components/WaitingList';
 import { useGame } from '../context/GameContext';
+
+const StyledSection = styled(Paper)(() => ({
+    background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
+    borderRadius: 3,
+    boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
+}));
 
 export default function LobbyPage() {
   const { currentPlayer } = useGame();
@@ -40,7 +45,6 @@ export default function LobbyPage() {
             borderRadius: 3
           }}>
             <Stack direction="row" spacing={2} alignItems="center" justifyContent="center">
-              <GameIcon sx={{ fontSize: 40 }} />
               <Box textAlign="center">
                 <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
                   Welcome, {currentPlayer.username}!
@@ -56,27 +60,15 @@ export default function LobbyPage() {
           <Grid container spacing={4}>
             <Grid item xs={12} lg={6}>
               <Stack spacing={3}>
-                <Paper sx={{ 
-                  background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
-                  borderRadius: 3,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-                }}>
+                <StyledSection>
                   <PlayerList />
-                </Paper>
-                <Paper sx={{ 
-                  background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
-                  borderRadius: 3,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-                }}>
+                </StyledSection>
+                <StyledSection>
                   <WaitingList />
-                </Paper>
-                <Paper sx={{ 
-                  background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
-                  borderRadius: 3,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-                }}>
+                </StyledSection>
+                <StyledSection>
                   <Leaderboard />
-                </Paper>
+                </StyledSection>
               </Stack>
             </Grid>
             <Grid item xs={12} lg={6}>

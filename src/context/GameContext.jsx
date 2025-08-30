@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
-import { WAIT_QUEUE_KEY } from '../constants';
+import { WAIT_QUEUE_KEY, PLAYER_STATUS, CURRENT_PLAYER_KEY } from '../constants';
 
 const GameContext = createContext();
 
@@ -9,7 +9,7 @@ export function GameProvider({ children }) {
   const [players, setPlayers] = useState(() => getPlayers());
   const [currentPlayer, setCurrentPlayer] = useState(() => {
     try {
-      const raw = sessionStorage.getItem('rps_current_player');
+      const raw = sessionStorage.getItem(CURRENT_PLAYER_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
@@ -18,6 +18,7 @@ export function GameProvider({ children }) {
 
   const [activeGame, setActiveGame] = useState(null);
   const [pendingInvite, setPendingInvite] = useState(null);
+  const [sentInvitations, setSentInvitations] = useState(new Set());
 
   const channelRef = useRef(getChannel());
 
@@ -29,13 +30,13 @@ export function GameProvider({ children }) {
 
   const registerPlayer = (player) => {
     try {
-      sessionStorage.setItem('rps_current_player', JSON.stringify(player));
+      sessionStorage.setItem(CURRENT_PLAYER_KEY, JSON.stringify(player));
     } catch {}
     setCurrentPlayer(player);
     const existing = getPlayers();
     const updated = existing.some((p) => p.id === player.id)
       ? existing.map((p) => (p.id === player.id ? { ...p, username: player.username } : p))
-      : existing.concat({ ...player, status: 'idle', score: player.score || 0 });
+      : existing.concat({ ...player, status: PLAYER_STATUS.IDLE, score: player.score || 0 });
 
     broadcastPlayers(updated);
   };
@@ -45,7 +46,7 @@ export function GameProvider({ children }) {
     try {
       const updated = removePlayerById(currentPlayer.id);
       channelRef.current?.postMessage({ type: 'PLAYER_LIST_UPDATE', payload: { players: updated } });
-      sessionStorage.removeItem('rps_current_player');
+      sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       setCurrentPlayer(null);
       setActiveGame(null);
     } catch {}
@@ -53,7 +54,9 @@ export function GameProvider({ children }) {
 
   const invitePlayer = (opponent) => {
     if (!currentPlayer) return;
-    if (opponent.status === 'idle') {
+    if (opponent.status === PLAYER_STATUS.IDLE) {
+      // Add to sent invitations to show pending state
+      setSentInvitations(prev => new Set([...prev, opponent.id]));
       channelRef.current?.postMessage({ type: 'INVITE', payload: { from: currentPlayer, to: opponent } });
     } else {
       try {
@@ -72,16 +75,30 @@ export function GameProvider({ children }) {
     channelRef.current?.postMessage({ type: 'INVITE_ACCEPT', payload: { from: to, to: from } });
     startGame(from, to);
     setPendingInvite(null);
+    // Clear sent invitation when accepted
+    setSentInvitations(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(from.id);
+      return newSet;
+    });
   };
 
   const declineInvite = (invite) => {
     setPendingInvite(null);
     channelRef.current?.postMessage({ type: 'INVITE_DECLINE', payload: invite });
+    // Clear sent invitation when declined
+    if (invite.from) {
+      setSentInvitations(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(invite.from.id);
+        return newSet;
+      });
+    }
   };
 
   const startGame = (p1, p2) => {
     const updated = getPlayers().map((p) =>
-      p.id === p1.id ? { ...p, status: 'in-game' } : p.id === p2.id ? { ...p, status: 'in-game' } : p
+      p.id === p1.id ? { ...p, status: PLAYER_STATUS.IN_GAME } : p.id === p2.id ? { ...p, status: PLAYER_STATUS.IN_GAME } : p
     );
     broadcastPlayers(updated);
     setActiveGame({ players: [p1, p2], choices: {}, result: null });
@@ -117,7 +134,7 @@ export function GameProvider({ children }) {
     if (!activeGame) return;
     const [p1, p2] = activeGame.players;
     const updated = getPlayers().map((p) =>
-      p.id === p1.id || p.id === p2.id ? { ...p, status: 'idle' } : p
+      p.id === p1.id || p.id === p2.id ? { ...p, status: PLAYER_STATUS.IDLE } : p
     );
     broadcastPlayers(updated);
     setActiveGame(null);
@@ -171,6 +188,26 @@ export function GameProvider({ children }) {
         if (currentPlayer && (from.id === currentPlayer.id || to.id === currentPlayer.id)) {
           startGame(from, to);
         }
+        // Clear sent invitation when accepted
+        setSentInvitations(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(from.id);
+          newSet.delete(to.id);
+          return newSet;
+        });
+        return;
+      }
+
+      if (type === 'INVITE_DECLINE') {
+        // Clear sent invitation when declined
+        const { from, to } = payload;
+        if (currentPlayer && from.id === currentPlayer.id) {
+          setSentInvitations(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(to.id);
+            return newSet;
+          });
+        }
         return;
       }
 
@@ -199,7 +236,7 @@ export function GameProvider({ children }) {
       if (type === 'EXIT_GAME') {
         setActiveGame(null);
         const updated = getPlayers().map((p) =>
-          payload.players.find((pl) => pl.id === p.id) ? { ...p, status: 'idle' } : p
+          payload.players.find((pl) => pl.id === p.id) ? { ...p, status: PLAYER_STATUS.IDLE } : p
         );
         broadcastPlayers(updated);
         return;
@@ -218,13 +255,13 @@ export function GameProvider({ children }) {
   useEffect(() => {
     const handleBeforeUnload = () => {
       try {
-        const meRaw = sessionStorage.getItem('rps_current_player');
+        const meRaw = sessionStorage.getItem(CURRENT_PLAYER_KEY);
         const me = meRaw ? JSON.parse(meRaw) : null;
         if (me?.id) {
           const updated = removePlayerById(me.id);
           channelRef.current?.postMessage({ type: 'PLAYER_LIST_UPDATE', payload: { players: updated } });
         }
-        sessionStorage.removeItem('rps_current_player');
+        sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       } catch {}
     };
 
@@ -251,6 +288,7 @@ export function GameProvider({ children }) {
         submitChoice,
         resetRound,
         exitGame,
+        sentInvitations,
       }}
     >
       {children}

@@ -64,8 +64,8 @@ const GameArea = () => {
   const getResultText = () => {
     if (!result) return 'Waiting for choices...';
     if (result === 'draw') return 'It\'s a Draw!';
-    if (result === currentPlayer.id) return 'You Win! 🎉';
-    return 'You Lose 😢';
+    if (result === currentPlayer.id) return 'You Win!';
+    return 'You Lose';
   };
 
   const getChoiceEmoji = (choice) => {
