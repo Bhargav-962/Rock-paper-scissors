@@ -2,6 +2,14 @@ import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
 import { PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
+import {
+  broadcastPlayerListUpdate as broadcastPlayerUpdate,
+  broadcastStartGame,
+  broadcastChoiceSubmitted,
+  broadcastResetRound,
+  broadcastExitGame,
+  addMessageListener
+} from '../utils/broadcast';
 
 const GameContext = createContext();
 
@@ -28,7 +36,7 @@ export function GameProvider({ children }) {
     savePlayers(players);
     setPlayers(players);
     // Updates the player list across other tabs
-    channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players } });
+    broadcastPlayerUpdate(channelRef.current, players);
   };
 
   const playGame = (opponent) => {
@@ -40,10 +48,7 @@ export function GameProvider({ children }) {
     });
 
     // Notify other tabs about the game start
-    channelRef.current?.postMessage({
-      type: MESSAGE_TYPES.START_GAME,
-      payload: { participants: updatedParticipantsList }
-    });
+    broadcastStartGame(channelRef.current, updatedParticipantsList);
     const updatedPlayersList = players.map(player =>
       updatedParticipantsList.find(p => p.id === player.id) || player
     );
@@ -66,7 +71,7 @@ export function GameProvider({ children }) {
     if (!currentPlayer) return;
     try {
       const updated = removePlayerById(currentPlayer.id);
-      channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
+      broadcastPlayerUpdate(channelRef.current, updated);
       sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       setCurrentPlayer(null);
       setActiveGame(activeGameInitial);
@@ -77,10 +82,7 @@ export function GameProvider({ children }) {
     setActiveGame({ ...activeGame, choices, result });
 
     // Broadcast the choice submission to other tabs
-    channelRef.current?.postMessage({
-      type: MESSAGE_TYPES.CHOICE_SUBMITTED,
-      payload: { choices, result }
-    });
+    broadcastChoiceSubmitted(channelRef.current, choices, result);
   };
 
   const submitChoice = (playerId, choice) => {
@@ -103,7 +105,7 @@ export function GameProvider({ children }) {
 
   const resetRound = () => {
     setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
-    channelRef.current?.postMessage({ type: MESSAGE_TYPES.RESET_ROUND });
+    broadcastResetRound(channelRef.current);
   };
 
   const exitGame = () => {
@@ -114,7 +116,7 @@ export function GameProvider({ children }) {
     );
     broadcastPlayerListUpdate(updated);
     setActiveGame(activeGameInitial);
-    channelRef.current?.postMessage({ type: MESSAGE_TYPES.EXIT_GAME, payload: { players: [p1, p2] } });
+    broadcastExitGame(channelRef.current, [p1, p2]);
   };
 
   const decideWinner = (id1, c1, id2, c2) => {
@@ -130,9 +132,6 @@ export function GameProvider({ children }) {
   };
 
   useEffect(() => {
-    const ch = channelRef.current;
-    if (!ch) return;
-
     const handler = (ev) => {
       const { type, payload } = ev.data || ev;
 
@@ -166,8 +165,8 @@ export function GameProvider({ children }) {
       }
     };
 
-    ch.addEventListener('message', handler);
-    return () => ch.removeEventListener('message', handler);
+    const removeListener = addMessageListener(channelRef.current, handler);
+    return removeListener;
   }, [currentPlayer?.id]);
 
   useEffect(() => {
@@ -177,7 +176,7 @@ export function GameProvider({ children }) {
         const me = meRaw ? JSON.parse(meRaw) : null;
         if (me?.id) {
           const updated = removePlayerById(me.id);
-          channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
+          broadcastPlayerUpdate(channelRef.current, updated);
         }
         sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       } catch { }
