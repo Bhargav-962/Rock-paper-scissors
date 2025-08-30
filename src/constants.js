@@ -1,16 +1,13 @@
 export const CHANNEL_NAME = 'game_channel';
 export const PLAYERS_LIST = 'players_list';
-export const WAIT_QUEUE_KEY = 'waiting_queue';
 export const CURRENT_PLAYER_KEY = 'current_player';
 
 export const MESSAGE_TYPES = {
   PLAYER_LIST_UPDATE: 'PLAYER_LIST_UPDATE',
-  INVITE: 'INVITE',
-  INVITE_ACCEPT: 'INVITE_ACCEPT',
-  INVITE_DECLINE: 'INVITE_DECLINE',
   CHOICE_SUBMITTED: 'CHOICE_SUBMITTED',
   RESET_ROUND: 'RESET_ROUND',
-  EXIT_GAME: 'EXIT_GAME'
+  EXIT_GAME: 'EXIT_GAME',
+  START_GAME: 'START_GAME'
 };
 
 export const GAME_OPTIONS = [

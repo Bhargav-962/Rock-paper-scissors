@@ -1,7 +1,7 @@
 import { Button, Chip, Stack, Typography } from "@mui/material"
 import { PLAYER_STATUS, PLAYER_STATUS_LABELS } from "../constants"
 
-export default function PlayerListItem({ player, idx, invitePlayer, isDisabled, isInvitationSent }) {
+export default function PlayerListItem({ player, idx, playGame, isDisabled }) {
     return (
         <Stack key={player.id} direction="row" alignItems="center" justifyContent="space-between">
             <Stack direction="row" spacing={2} alignItems="center">
@@ -15,11 +15,10 @@ export default function PlayerListItem({ player, idx, invitePlayer, isDisabled, 
             <Button
                 variant="contained"
                 size="small"
-                onClick={() => invitePlayer(player)}
+                onClick={() => playGame(player)}
                 disabled={isDisabled}
-                color={isInvitationSent ? 'secondary' : 'primary'}
             >
-                {isInvitationSent ? 'Invitation Sent' : 'Play'}
+                Play
             </Button>
         </Stack>
     )

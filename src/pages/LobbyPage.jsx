@@ -11,8 +11,6 @@ import {
 import PlayerList from '../components/PlayerList';
 import Leaderboard from '../components/LeaderboardSection';
 import GameArea from '../components/GameArea';
-import InviteDialog from '../components/InviteDialog';
-import WaitingList from '../components/WaitingList';
 import { useGame } from '../context/GameContext';
 
 const StyledSection = styled(Paper)(() => ({
@@ -64,9 +62,6 @@ export default function LobbyPage() {
                   <PlayerList />
                 </StyledSection>
                 <StyledSection>
-                  <WaitingList />
-                </StyledSection>
-                <StyledSection>
                   <Leaderboard />
                 </StyledSection>
               </Stack>
@@ -77,7 +72,6 @@ export default function LobbyPage() {
           </Grid>
         </Box>
       </Fade>
-      <InviteDialog />
     </Container>
   );
 }

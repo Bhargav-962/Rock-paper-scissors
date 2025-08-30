@@ -1,8 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
-import { WAIT_QUEUE_KEY, PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
-import { useInviteSystem } from '../hooks/useInviteSystem';
+import { PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
 
 const GameContext = createContext();
 
@@ -19,17 +18,6 @@ export function GameProvider({ children }) {
 
   const [activeGame, setActiveGame] = useState(null);
 
-  const {
-    pendingInvite,
-    sentInvitations,
-    invitePlayer,
-    acceptInvite,
-    declineInvite,
-    handleInviteMessage,
-    handleInviteAcceptMessage,
-    handleInviteDeclineMessage
-  } = useInviteSystem();
-
   const channelRef = useRef(getChannel());
 
   const broadcastPlayers = (updated) => {
@@ -37,6 +25,22 @@ export function GameProvider({ children }) {
     setPlayers(updated);
     // Updates the player list across other tabs
     channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
+  };
+
+  const playGame = (opponent) => {
+    if (!currentPlayer || !opponent) return;
+    
+    // Start the game directly with current player and opponent
+    const p1 = currentPlayer;
+    const p2 = opponent;
+    
+    // Notify other tabs about the game start
+    channelRef.current?.postMessage({ 
+      type: MESSAGE_TYPES.START_GAME, 
+      payload: { players: [p1, p2] } 
+    });
+    
+    startGame(p1, p2);
   };
 
   const updatePlayerList = (player, isCurrentPlayer = false) => {
@@ -104,18 +108,6 @@ export function GameProvider({ children }) {
     broadcastPlayers(updated);
     setActiveGame(null);
     channelRef.current?.postMessage({ type: MESSAGE_TYPES.EXIT_GAME, payload: { players: [p1, p2] } });
-
-    try {
-      const q = JSON.parse(localStorage.getItem(WAIT_QUEUE_KEY) || '[]');
-      [p1, p2].forEach((available) => {
-        const idx = q.findIndex((item) => item.targetId === available.id);
-        if (idx !== -1) {
-          const next = q.splice(idx, 1)[0];
-          channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE, payload: { from: next.requester, to: available } });
-        }
-      });
-      localStorage.setItem(WAIT_QUEUE_KEY, JSON.stringify(q));
-    } catch {}
   };
 
   const decideWinner = (id1, c1, id2, c2) => {
@@ -142,20 +134,11 @@ export function GameProvider({ children }) {
           setPlayers(payload.players || getPlayers());
           break;
 
-        case MESSAGE_TYPES.INVITE:
-          handleInviteMessage(payload, currentPlayer);
-          break;
-
-        case MESSAGE_TYPES.INVITE_ACCEPT:
-          const { from, to } = payload;
-          if (currentPlayer && (from.id === currentPlayer.id || to.id === currentPlayer.id)) {
-            startGame(from, to);
+        case MESSAGE_TYPES.START_GAME:
+          const { players: gamePlayers } = payload;
+          if (currentPlayer && gamePlayers.find(p => p.id === currentPlayer.id)) {
+            startGame(gamePlayers[0], gamePlayers[1]);
           }
-          handleInviteAcceptMessage(payload, currentPlayer);
-          break;
-
-        case MESSAGE_TYPES.INVITE_DECLINE:
-          handleInviteDeclineMessage(payload, currentPlayer);
           break;
 
         case MESSAGE_TYPES.CHOICE_SUBMITTED:
@@ -229,15 +212,11 @@ export function GameProvider({ children }) {
         currentPlayer,
         updatePlayerList,
         logout,
-        invitePlayer: (opponent) => invitePlayer(currentPlayer, opponent),
-        pendingInvite,
-        acceptInvite: (invite) => acceptInvite(invite, currentPlayer, startGame),
-        declineInvite,
+        playGame,
         activeGame,
         submitChoice,
         resetRound,
         exitGame,
-        sentInvitations,
       }}
     >
       {children}
