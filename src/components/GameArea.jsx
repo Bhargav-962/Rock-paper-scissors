@@ -21,6 +21,7 @@ import {
 import { useGame } from '../context/GameContext';
 import { GAME_OPTIONS } from '../constants';
 import GameRulesDialog from './GameRulesDialog';
+import { styles, getChoiceButtonStyle } from './GameArea.styles';
 
 const GameArea = () => {
   const { currentPlayer, activeGame, submitChoice, resetRound, exitGame } = useGame();
@@ -28,15 +29,9 @@ const GameArea = () => {
 
   if (!activeGame.participants.length || !currentPlayer) {
     return (
-      <Card sx={{ 
-        maxWidth: 600, 
-        mx: 'auto', 
-        mt: 4,
-        background: 'linear-gradient(145deg, #f5f5f5 0%, #e0e0e0 100%)',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.1)'
-      }}>
-        <CardContent sx={{ textAlign: 'center', py: 6 }}>
-          <GameIcon sx={{ fontSize: 64, color: 'primary.main', mb: 2 }} />
+      <Card sx={styles.emptyStateCard}>
+        <CardContent sx={styles.emptyStateContent}>
+          <GameIcon sx={styles.emptyStateIcon} />
           <Typography variant="h5" gutterBottom color="text.primary">
             Ready to Play?
           </Typography>
@@ -82,20 +77,13 @@ const GameArea = () => {
 
   return (
     <>
-      <Card sx={{ 
-        maxWidth: 700, 
-        mx: 'auto', 
-        mt: 2,
-        background: 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
-        boxShadow: '0 12px 40px rgba(0,0,0,0.1)',
-        borderRadius: 3
-      }}>
-        <CardContent sx={{ p: 4 }}>
+      <Card sx={styles.mainCard}>
+        <CardContent sx={styles.cardContent}>
           <Stack spacing={4} alignItems="center">
             {/* Header */}
-            <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={{ width: '100%' }}>
+            <Stack direction="row" spacing={2} alignItems="center" justifyContent="center" sx={styles.headerStack}>
               <GameIcon color="primary" />
-              <Typography variant="h4" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
+              <Typography variant="h4" sx={styles.title}>
                 VS {opponent.username}
               </Typography>
               <Button 
@@ -103,11 +91,7 @@ const GameArea = () => {
                 size="small" 
                 startIcon={<HelpIcon />}
                 onClick={() => setShowHint(true)}
-                sx={{ 
-                  borderRadius: 2,
-                  textTransform: 'none',
-                  fontWeight: 500
-                }}
+                sx={styles.rulesButton}
               >
                 Rules
               </Button>
@@ -116,7 +100,7 @@ const GameArea = () => {
             <Divider sx={{ width: '100%' }} />
 
             {/* Game Choices */}
-            <Stack spacing={3} alignItems="center" sx={{ width: '100%' }}>
+            <Stack spacing={3} alignItems="center" sx={styles.choicesStack}>
               <Typography variant="h6" color="text.secondary">Choose your weapon!</Typography>
               <Stack direction="row" spacing={2} justifyContent="center">
                 {GAME_OPTIONS.map((option) => (
@@ -125,30 +109,7 @@ const GameArea = () => {
                       variant={myChoice === option.name ? 'contained' : 'outlined'}
                       onClick={() => handleChoice(option.name)}
                       disabled={!!myChoice}
-                      sx={{
-                        minWidth: 120,
-                        minHeight: 80,
-                        borderRadius: 3,
-                        flexDirection: 'column',
-                        gap: 1,
-                        fontSize: '1.2rem',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        backgroundColor: myChoice === option.name ? option.color : 'transparent',
-                        borderColor: option.color,
-                        color: myChoice === option.name ? 'white' : option.color,
-                        '&:hover': {
-                          backgroundColor: myChoice === option.name ? option.color : `${option.color}15`,
-                          transform: 'scale(1.05)',
-                          boxShadow: `0 6px 20px ${option.color}40`
-                        },
-                        transition: 'all 0.3s ease',
-                        '&:disabled': {
-                          backgroundColor: myChoice === option.name ? option.color : 'transparent',
-                          color: myChoice === option.name ? 'white' : option.color,
-                          opacity: myChoice === option.name ? 1 : 0.5
-                        }
-                      }}
+                      sx={getChoiceButtonStyle(option, myChoice)}
                     >
                       <Typography variant="h3">{option.emoji}</Typography>
                       <Typography variant="body2">{option.name}</Typography>
@@ -164,22 +125,14 @@ const GameArea = () => {
             <Stack spacing={3} alignItems="center" sx={{ width: '100%' }}>
               {/* Progress indicator */}
               {!result && (
-                <Box sx={{ width: '100%', maxWidth: 400 }}>
+                <Box sx={styles.progressContainer}>
                   <Typography variant="body2" color="text.secondary" gutterBottom textAlign="center">
                     {myChoice ? `Waiting for ${opponent.username} to choose...` : 'Waiting for choices...'}
                   </Typography>
                   <LinearProgress 
                     variant="determinate" 
                     value={bothPlayersChosen ? 100 : (myChoice ? 50 : 0)} 
-                    sx={{ 
-                      height: 8, 
-                      borderRadius: 4,
-                      backgroundColor: 'grey.200',
-                      '& .MuiLinearProgress-bar': {
-                        borderRadius: 4,
-                        background: 'linear-gradient(90deg, #4CAF50, #2196F3)'
-                      }
-                    }}
+                    sx={styles.progressBar}
                   />
                 </Box>
               )}
@@ -187,17 +140,14 @@ const GameArea = () => {
               {/* Player choices display */}
               <Stack direction="row" spacing={4} alignItems="center" justifyContent="center">
                 <Card sx={{ 
-                  minWidth: 150, 
-                  textAlign: 'center',
-                  backgroundColor: myChoice ? 'primary.50' : 'grey.50',
-                  border: myChoice ? '2px solid' : '1px solid',
-                  borderColor: myChoice ? 'primary.main' : 'grey.300'
+                  ...styles.playerCard,
+                  ...(myChoice ? styles.myChoiceCard : styles.noChoiceCard)
                 }}>
                   <CardContent>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       You
                     </Typography>
-                    <Typography variant="h2" sx={{ my: 1 }}>
+                    <Typography variant="h2" sx={styles.emojiText}>
                       {myChoice ? getChoiceEmoji(myChoice) : '❓'}
                     </Typography>
                     <Chip 
@@ -214,17 +164,14 @@ const GameArea = () => {
                 </Typography>
 
                 <Card sx={{ 
-                  minWidth: 150, 
-                  textAlign: 'center',
-                  backgroundColor: oppChoice ? 'secondary.50' : 'grey.50',
-                  border: oppChoice ? '2px solid' : '1px solid',
-                  borderColor: oppChoice ? 'secondary.main' : 'grey.300'
+                  ...styles.playerCard,
+                  ...(oppChoice ? styles.oppChoiceCard : styles.noChoiceCard)
                 }}>
                   <CardContent>
                     <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                       {opponent.username}
                     </Typography>
-                    <Typography variant="h2" sx={{ my: 1 }}>
+                    <Typography variant="h2" sx={styles.emojiText}>
                       {result ? (oppChoice ? getChoiceEmoji(oppChoice) : '❓') : (oppChoice ? '✓' : '❓')}
                     </Typography>
                     <Chip 
@@ -243,10 +190,8 @@ const GameArea = () => {
                   <Typography 
                     variant="h4" 
                     sx={{ 
-                      fontWeight: 'bold',
-                      color: getResultColor(),
-                      textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                      mb: 1
+                      ...styles.resultText,
+                      color: getResultColor()
                     }}
                   >
                     {getResultText(opponent.username)}
@@ -269,21 +214,7 @@ const GameArea = () => {
                     size="large"
                     startIcon={<PlayIcon />}
                     onClick={resetRound}
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '1.1rem',
-                      background: 'linear-gradient(45deg, #4CAF50, #45a049)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #45a049, #4CAF50)',
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(76, 175, 80, 0.4)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
+                    sx={styles.playAgainButton}
                   >
                     Play Again
                   </Button>
@@ -293,19 +224,7 @@ const GameArea = () => {
                     startIcon={<ExitIcon />}
                     onClick={exitGame}
                     color="error"
-                    sx={{
-                      borderRadius: 3,
-                      px: 4,
-                      py: 1.5,
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      fontSize: '1.1rem',
-                      '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: '0 6px 20px rgba(244, 67, 54, 0.3)'
-                      },
-                      transition: 'all 0.3s ease'
-                    }}
+                    sx={styles.quitButton}
                   >
                     Quit Game
                   </Button>

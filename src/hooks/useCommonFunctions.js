@@ -47,6 +47,7 @@ export function useCommonFunctions(state, dispatch, channel) {
       updatedParticipantsList.find(p => p.id === player.id) || player
     );
     updatePlayerList(updatedPlayersList); // Update status for active participants
+    updateCurrentPlayer(dispatch)(updatedParticipantsList[0]);
     updateGameParticipants(dispatch)(updatedParticipantsList);
   };
 

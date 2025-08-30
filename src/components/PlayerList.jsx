@@ -6,7 +6,8 @@ import PlayerListItem from './PlayerListItem';
 export default function PlayerList() {
   const { players, currentPlayer, playGame } = useGame();
   const otherPlayers = players.filter((p) => p.id !== currentPlayer?.id);
-
+  const isCurrentPlayerInGame = currentPlayer?.status === PLAYER_STATUS.IN_GAME;
+  
   return (
     <Paper sx={{ p: 2, width: '300px' }}>
       <Stack spacing={2}>
@@ -20,7 +21,7 @@ export default function PlayerList() {
               player={p}
               idx={idx}
               playGame={playGame}
-              isDisabled={isPlayerBusy}
+              isDisabled={isPlayerBusy || isCurrentPlayerInGame}
             />
           );
         })}

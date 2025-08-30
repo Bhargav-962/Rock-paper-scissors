@@ -11,7 +11,8 @@ import {
   destroyCurrentGame,
   updateUserChoices,
   updateUserResult,
-  resetGameState
+  resetGameState,
+  updateCurrentPlayer
 } from '../actions/gameActions';
 
 const GameContext = createContext();
@@ -40,8 +41,10 @@ export function GameProvider({ children }) {
 
         case MESSAGE_TYPES.START_GAME:
           const { participants: gamePlayers } = payload;
-          if (currentPlayer && gamePlayers.find(p => p.id === currentPlayer.id)) {
+          const currentUser = gamePlayers.find(p => p.id === currentPlayer?.id);
+          if (currentUser) {
             updateGameParticipants(dispatch)(gamePlayers);
+            updateCurrentPlayer(dispatch)(currentUser);
           }
           break;
 
