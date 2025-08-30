@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from 'r
 import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
 import { WAIT_QUEUE_KEY, PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
+import { useInviteSystem } from '../hooks/useInviteSystem';
 
 const GameContext = createContext();
 
@@ -17,8 +18,17 @@ export function GameProvider({ children }) {
   });
 
   const [activeGame, setActiveGame] = useState(null);
-  const [pendingInvite, setPendingInvite] = useState(null);
-  const [sentInvitations, setSentInvitations] = useState(new Set());
+
+  const {
+    pendingInvite,
+    sentInvitations,
+    invitePlayer,
+    acceptInvite,
+    declineInvite,
+    handleInviteMessage,
+    handleInviteAcceptMessage,
+    handleInviteDeclineMessage
+  } = useInviteSystem();
 
   const channelRef = useRef(getChannel());
 
@@ -50,50 +60,6 @@ export function GameProvider({ children }) {
       setCurrentPlayer(null);
       setActiveGame(null);
     } catch {}
-  };
-
-  const invitePlayer = (opponent) => {
-    if (!currentPlayer) return;
-    if (opponent.status === PLAYER_STATUS.IDLE) {
-      // Add to sent invitations to show pending state
-      setSentInvitations(prev => new Set([...prev, opponent.id]));
-      channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE, payload: { from: currentPlayer, to: opponent } });
-    } else {
-      try {
-        const q = JSON.parse(localStorage.getItem(WAIT_QUEUE_KEY) || '[]');
-        if (!q.find((item) => item.requester.id === currentPlayer.id && item.targetId === opponent.id)) {
-          q.push({ requester: currentPlayer, targetId: opponent.id });
-          localStorage.setItem(WAIT_QUEUE_KEY, JSON.stringify(q));
-        }
-      } catch {}
-    }
-  };
-
-  const acceptInvite = (invite) => {
-    const { from, to } = invite;
-    if (!currentPlayer || to.id !== currentPlayer.id) return;
-    channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE_ACCEPT, payload: { from: to, to: from } });
-    startGame(from, to);
-    setPendingInvite(null);
-    // Clear sent invitation when accepted
-    setSentInvitations(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(from.id);
-      return newSet;
-    });
-  };
-
-  const declineInvite = (invite) => {
-    setPendingInvite(null);
-    channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE_DECLINE, payload: invite });
-    // Clear sent invitation when declined
-    if (invite.from) {
-      setSentInvitations(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(invite.from.id);
-        return newSet;
-      });
-    }
   };
 
   const startGame = (p1, p2) => {
@@ -172,79 +138,63 @@ export function GameProvider({ children }) {
     const handler = (ev) => {
       const { type, payload } = ev.data || ev;
 
-      if (type === MESSAGE_TYPES.PLAYER_LIST_UPDATE) {
-        setPlayers(payload.players || getPlayers());
-        return;
-      }
+      switch (type) {
+        case MESSAGE_TYPES.PLAYER_LIST_UPDATE:
+          setPlayers(payload.players || getPlayers());
+          break;
 
-      if (type === MESSAGE_TYPES.INVITE) {
-        const { from, to } = payload;
-        if (currentPlayer && to.id === currentPlayer.id) setPendingInvite({ from, to });
-        return;
-      }
+        case MESSAGE_TYPES.INVITE:
+          handleInviteMessage(payload, currentPlayer);
+          break;
 
-      if (type === MESSAGE_TYPES.INVITE_ACCEPT) {
-        const { from, to } = payload;
-        if (currentPlayer && (from.id === currentPlayer.id || to.id === currentPlayer.id)) {
-          startGame(from, to);
-        }
-        // Clear sent invitation when accepted
-        setSentInvitations(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(from.id);
-          newSet.delete(to.id);
-          return newSet;
-        });
-        return;
-      }
-
-      if (type === MESSAGE_TYPES.INVITE_DECLINE) {
-        // Clear sent invitation when declined
-        const { from, to } = payload;
-        if (currentPlayer && from.id === currentPlayer.id) {
-          setSentInvitations(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(to.id);
-            return newSet;
-          });
-        }
-        return;
-      }
-
-      if (type === MESSAGE_TYPES.CHOICE_SUBMITTED) {
-        setActiveGame((prev) => {
-          if (!prev) return prev;
-          const choices = { ...(prev.choices || {}), [payload.playerId]: payload.choice };
-          let result = prev.result;
-
-          if (Object.keys(choices).length === 2 && !result) {
-            const [a, b] = prev.players;
-            result = decideWinner(a.id, choices[a.id], b.id, choices[b.id]);
-
-            if (result !== 'draw') {
-              const updatedPlayers = getPlayers().map((pl) =>
-                pl.id === result ? { ...pl, score: (pl.score || 0) + 1 } : pl
-              );
-              broadcastPlayers(updatedPlayers);
-            }
+        case MESSAGE_TYPES.INVITE_ACCEPT:
+          const { from, to } = payload;
+          if (currentPlayer && (from.id === currentPlayer.id || to.id === currentPlayer.id)) {
+            startGame(from, to);
           }
-          return { ...prev, choices, result };
-        });
-        return;
-      }
+          handleInviteAcceptMessage(payload, currentPlayer);
+          break;
 
-      if (type === MESSAGE_TYPES.EXIT_GAME) {
-        setActiveGame(null);
-        const updated = getPlayers().map((p) =>
-          payload.players.find((pl) => pl.id === p.id) ? { ...p, status: PLAYER_STATUS.IDLE } : p
-        );
-        broadcastPlayers(updated);
-        return;
-      }
+        case MESSAGE_TYPES.INVITE_DECLINE:
+          handleInviteDeclineMessage(payload, currentPlayer);
+          break;
 
-      if (type === MESSAGE_TYPES.RESET_ROUND) {
-        setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
-        return;
+        case MESSAGE_TYPES.CHOICE_SUBMITTED:
+          setActiveGame((prev) => {
+            if (!prev) return prev;
+            const choices = { ...(prev.choices || {}), [payload.playerId]: payload.choice };
+            let result = prev.result;
+
+            if (Object.keys(choices).length === 2 && !result) {
+              const [a, b] = prev.players;
+              result = decideWinner(a.id, choices[a.id], b.id, choices[b.id]);
+
+              if (result !== 'draw') {
+                const updatedPlayers = getPlayers().map((pl) =>
+                  pl.id === result ? { ...pl, score: (pl.score || 0) + 1 } : pl
+                );
+                broadcastPlayers(updatedPlayers);
+              }
+            }
+            return { ...prev, choices, result };
+          });
+          break;
+
+        case MESSAGE_TYPES.EXIT_GAME:
+          setActiveGame(null);
+          const updated = getPlayers().map((p) =>
+            payload.players.find((pl) => pl.id === p.id) ? { ...p, status: PLAYER_STATUS.IDLE } : p
+          );
+          broadcastPlayers(updated);
+          break;
+
+        case MESSAGE_TYPES.RESET_ROUND:
+          setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
+          break;
+
+        default:
+          // Unknown message type, ignore
+          break;
       }
     };
 
@@ -280,9 +230,9 @@ export function GameProvider({ children }) {
         currentPlayer,
         registerPlayer,
         logout,
-        invitePlayer,
+        invitePlayer: (opponent) => invitePlayer(currentPlayer, opponent),
         pendingInvite,
-        acceptInvite,
+        acceptInvite: (invite) => acceptInvite(invite, currentPlayer, startGame),
         declineInvite,
         activeGame,
         submitChoice,
