@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
-import { WAIT_QUEUE_KEY, PLAYER_STATUS, CURRENT_PLAYER_KEY } from '../constants';
+import { WAIT_QUEUE_KEY, PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
 
 const GameContext = createContext();
 
@@ -25,7 +25,7 @@ export function GameProvider({ children }) {
   const broadcastPlayers = (updated) => {
     savePlayers(updated);
     setPlayers(updated);
-    channelRef.current?.postMessage({ type: 'PLAYER_LIST_UPDATE', payload: { players: updated } });
+    channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
   };
 
   const registerPlayer = (player) => {
@@ -45,7 +45,7 @@ export function GameProvider({ children }) {
     if (!currentPlayer) return;
     try {
       const updated = removePlayerById(currentPlayer.id);
-      channelRef.current?.postMessage({ type: 'PLAYER_LIST_UPDATE', payload: { players: updated } });
+      channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
       sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       setCurrentPlayer(null);
       setActiveGame(null);
@@ -57,7 +57,7 @@ export function GameProvider({ children }) {
     if (opponent.status === PLAYER_STATUS.IDLE) {
       // Add to sent invitations to show pending state
       setSentInvitations(prev => new Set([...prev, opponent.id]));
-      channelRef.current?.postMessage({ type: 'INVITE', payload: { from: currentPlayer, to: opponent } });
+      channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE, payload: { from: currentPlayer, to: opponent } });
     } else {
       try {
         const q = JSON.parse(localStorage.getItem(WAIT_QUEUE_KEY) || '[]');
@@ -72,7 +72,7 @@ export function GameProvider({ children }) {
   const acceptInvite = (invite) => {
     const { from, to } = invite;
     if (!currentPlayer || to.id !== currentPlayer.id) return;
-    channelRef.current?.postMessage({ type: 'INVITE_ACCEPT', payload: { from: to, to: from } });
+    channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE_ACCEPT, payload: { from: to, to: from } });
     startGame(from, to);
     setPendingInvite(null);
     // Clear sent invitation when accepted
@@ -85,7 +85,7 @@ export function GameProvider({ children }) {
 
   const declineInvite = (invite) => {
     setPendingInvite(null);
-    channelRef.current?.postMessage({ type: 'INVITE_DECLINE', payload: invite });
+    channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE_DECLINE, payload: invite });
     // Clear sent invitation when declined
     if (invite.from) {
       setSentInvitations(prev => {
@@ -108,7 +108,7 @@ export function GameProvider({ children }) {
     setActiveGame((prev) => {
       if (!prev) return prev;
       const newChoices = { ...(prev.choices || {}), [playerId]: choice };
-      channelRef.current?.postMessage({ type: 'CHOICE_SUBMITTED', payload: { playerId, choice } });
+      channelRef.current?.postMessage({ type: MESSAGE_TYPES.CHOICE_SUBMITTED, payload: { playerId, choice } });
 
       let result = prev.result;
       if (Object.keys(newChoices).length === 2) {
@@ -127,7 +127,7 @@ export function GameProvider({ children }) {
 
   const resetRound = () => {
     setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
-    channelRef.current?.postMessage({ type: 'RESET_ROUND' });
+    channelRef.current?.postMessage({ type: MESSAGE_TYPES.RESET_ROUND });
   };
 
   const exitGame = () => {
@@ -138,7 +138,7 @@ export function GameProvider({ children }) {
     );
     broadcastPlayers(updated);
     setActiveGame(null);
-    channelRef.current?.postMessage({ type: 'EXIT_GAME', payload: { players: [p1, p2] } });
+    channelRef.current?.postMessage({ type: MESSAGE_TYPES.EXIT_GAME, payload: { players: [p1, p2] } });
 
     try {
       const q = JSON.parse(localStorage.getItem(WAIT_QUEUE_KEY) || '[]');
@@ -146,7 +146,7 @@ export function GameProvider({ children }) {
         const idx = q.findIndex((item) => item.targetId === available.id);
         if (idx !== -1) {
           const next = q.splice(idx, 1)[0];
-          channelRef.current?.postMessage({ type: 'INVITE', payload: { from: next.requester, to: available } });
+          channelRef.current?.postMessage({ type: MESSAGE_TYPES.INVITE, payload: { from: next.requester, to: available } });
         }
       });
       localStorage.setItem(WAIT_QUEUE_KEY, JSON.stringify(q));
@@ -172,18 +172,18 @@ export function GameProvider({ children }) {
     const handler = (ev) => {
       const { type, payload } = ev.data || ev;
 
-      if (type === 'PLAYER_LIST_UPDATE') {
+      if (type === MESSAGE_TYPES.PLAYER_LIST_UPDATE) {
         setPlayers(payload.players || getPlayers());
         return;
       }
 
-      if (type === 'INVITE') {
+      if (type === MESSAGE_TYPES.INVITE) {
         const { from, to } = payload;
         if (currentPlayer && to.id === currentPlayer.id) setPendingInvite({ from, to });
         return;
       }
 
-      if (type === 'INVITE_ACCEPT') {
+      if (type === MESSAGE_TYPES.INVITE_ACCEPT) {
         const { from, to } = payload;
         if (currentPlayer && (from.id === currentPlayer.id || to.id === currentPlayer.id)) {
           startGame(from, to);
@@ -198,7 +198,7 @@ export function GameProvider({ children }) {
         return;
       }
 
-      if (type === 'INVITE_DECLINE') {
+      if (type === MESSAGE_TYPES.INVITE_DECLINE) {
         // Clear sent invitation when declined
         const { from, to } = payload;
         if (currentPlayer && from.id === currentPlayer.id) {
@@ -211,7 +211,7 @@ export function GameProvider({ children }) {
         return;
       }
 
-      if (type === 'CHOICE_SUBMITTED') {
+      if (type === MESSAGE_TYPES.CHOICE_SUBMITTED) {
         setActiveGame((prev) => {
           if (!prev) return prev;
           const choices = { ...(prev.choices || {}), [payload.playerId]: payload.choice };
@@ -233,7 +233,7 @@ export function GameProvider({ children }) {
         return;
       }
 
-      if (type === 'EXIT_GAME') {
+      if (type === MESSAGE_TYPES.EXIT_GAME) {
         setActiveGame(null);
         const updated = getPlayers().map((p) =>
           payload.players.find((pl) => pl.id === p.id) ? { ...p, status: PLAYER_STATUS.IDLE } : p
@@ -242,7 +242,7 @@ export function GameProvider({ children }) {
         return;
       }
 
-      if (type === 'RESET_ROUND') {
+      if (type === MESSAGE_TYPES.RESET_ROUND) {
         setActiveGame((prev) => (prev ? { ...prev, choices: {}, result: null } : prev));
         return;
       }
@@ -259,7 +259,7 @@ export function GameProvider({ children }) {
         const me = meRaw ? JSON.parse(meRaw) : null;
         if (me?.id) {
           const updated = removePlayerById(me.id);
-          channelRef.current?.postMessage({ type: 'PLAYER_LIST_UPDATE', payload: { players: updated } });
+          channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
         }
         sessionStorage.removeItem(CURRENT_PLAYER_KEY);
       } catch {}

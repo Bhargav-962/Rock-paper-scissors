@@ -23,6 +23,7 @@ import {
   SportsEsports as GameIcon
 } from '@mui/icons-material';
 import { useGame } from '../context/GameContext';
+import { GAME_OPTIONS } from '../constants';
 
 const GameArea = () => {
   const { currentPlayer, activeGame, submitChoice, resetRound, exitGame } = useGame();
@@ -69,12 +70,8 @@ const GameArea = () => {
   };
 
   const getChoiceEmoji = (choice) => {
-    switch (choice) {
-      case 'Rock': return '🪨';
-      case 'Paper': return '📄';
-      case 'Scissors': return '✂️';
-      default: return '❓';
-    }
+    const option = GAME_OPTIONS.find(opt => opt.name === choice);
+    return option ? option.emoji : '❓';
   };
 
   const getResultColor = () => {
@@ -128,15 +125,11 @@ const GameArea = () => {
               </Typography>
               
               <Stack direction="row" spacing={2} justifyContent="center">
-                {[
-                  { choice: 'Rock', emoji: '🪨', color: '#8D6E63' },
-                  { choice: 'Paper', emoji: '📄', color: '#5C6BC0' },
-                  { choice: 'Scissors', emoji: '✂️', color: '#EF5350' }
-                ].map(({ choice, emoji, color }) => (
-                  <Zoom in timeout={300} key={choice}>
+                {GAME_OPTIONS.map((option) => (
+                  <Zoom in timeout={300} key={option.name}>
                     <Button
-                      variant={myChoice === choice ? 'contained' : 'outlined'}
-                      onClick={() => handleChoice(choice)}
+                      variant={myChoice === option.name ? 'contained' : 'outlined'}
+                      onClick={() => handleChoice(option.name)}
                       disabled={!!myChoice}
                       sx={{
                         minWidth: 120,
@@ -147,24 +140,24 @@ const GameArea = () => {
                         fontSize: '1.2rem',
                         textTransform: 'none',
                         fontWeight: 600,
-                        backgroundColor: myChoice === choice ? color : 'transparent',
-                        borderColor: color,
-                        color: myChoice === choice ? 'white' : color,
+                        backgroundColor: myChoice === option.name ? option.color : 'transparent',
+                        borderColor: option.color,
+                        color: myChoice === option.name ? 'white' : option.color,
                         '&:hover': {
-                          backgroundColor: myChoice === choice ? color : `${color}15`,
+                          backgroundColor: myChoice === option.name ? option.color : `${option.color}15`,
                           transform: 'scale(1.05)',
-                          boxShadow: `0 6px 20px ${color}40`
+                          boxShadow: `0 6px 20px ${option.color}40`
                         },
                         transition: 'all 0.3s ease',
                         '&:disabled': {
-                          backgroundColor: myChoice === choice ? color : 'transparent',
-                          color: myChoice === choice ? 'white' : color,
-                          opacity: myChoice === choice ? 1 : 0.5
+                          backgroundColor: myChoice === option.name ? option.color : 'transparent',
+                          color: myChoice === option.name ? 'white' : option.color,
+                          opacity: myChoice === option.name ? 1 : 0.5
                         }
                       }}
                     >
-                      <Typography variant="h3">{emoji}</Typography>
-                      <Typography variant="body2">{choice}</Typography>
+                      <Typography variant="h3">{option.emoji}</Typography>
+                      <Typography variant="body2">{option.name}</Typography>
                     </Button>
                   </Zoom>
                 ))}
@@ -350,30 +343,26 @@ const GameArea = () => {
         <DialogContent>
           <Stack spacing={4} sx={{ py: 2 }}>
             <Stack direction="row" spacing={4} justifyContent="center">
-              {[
-                { emoji: '🪨', name: 'Rock', beats: 'Scissors', color: '#8D6E63' },
-                { emoji: '📄', name: 'Paper', beats: 'Rock', color: '#5C6BC0' },
-                { emoji: '✂️', name: 'Scissors', beats: 'Paper', color: '#EF5350' }
-              ].map(({ emoji, name, beats, color }) => (
-                <Card key={name} sx={{ 
+              {GAME_OPTIONS.map((option) => (
+                <Card key={option.name} sx={{ 
                   textAlign: 'center', 
                   minWidth: 120,
                   border: '2px solid',
-                  borderColor: color,
+                  borderColor: option.color,
                   borderRadius: 3,
                   '&:hover': {
                     transform: 'scale(1.05)',
-                    boxShadow: `0 6px 20px ${color}40`
+                    boxShadow: `0 6px 20px ${option.color}40`
                   },
                   transition: 'all 0.3s ease'
                 }}>
                   <CardContent>
-                    <Typography variant="h2" sx={{ mb: 1 }}>{emoji}</Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: color, mb: 1 }}>
-                      {name}
+                    <Typography variant="h2" sx={{ mb: 1 }}>{option.emoji}</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: option.color, mb: 1 }}>
+                      {option.name}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      beats {beats}
+                      beats {option.beats}
                     </Typography>
                   </CardContent>
                 </Card>

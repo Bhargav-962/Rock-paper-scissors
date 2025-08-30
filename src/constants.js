@@ -3,10 +3,20 @@ export const STORAGE_KEY = 'players_list';
 export const WAIT_QUEUE_KEY = 'waiting_queue';
 export const CURRENT_PLAYER_KEY = 'current_player';
 
+export const MESSAGE_TYPES = {
+  PLAYER_LIST_UPDATE: 'PLAYER_LIST_UPDATE',
+  INVITE: 'INVITE',
+  INVITE_ACCEPT: 'INVITE_ACCEPT',
+  INVITE_DECLINE: 'INVITE_DECLINE',
+  CHOICE_SUBMITTED: 'CHOICE_SUBMITTED',
+  RESET_ROUND: 'RESET_ROUND',
+  EXIT_GAME: 'EXIT_GAME'
+};
+
 export const GAME_OPTIONS = [
-  { name: 'Rock', emoji: '🪨' },
-  { name: 'Paper', emoji: '📄' },
-  { name: 'Scissors', emoji: '✂️' }
+  { name: 'Rock', emoji: '🪨', beats: 'Scissors', color: '#8D6E63' },
+  { name: 'Paper', emoji: '📄', beats: 'Rock', color: '#5C6BC0' },
+  { name: 'Scissors', emoji: '✂️', beats: 'Paper', color: '#EF5350' }
 ];
 
 export const PLAYER_STATUS = {
