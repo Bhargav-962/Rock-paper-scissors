@@ -18,12 +18,12 @@ import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
 import { generateId } from '../utils/id';
 import useLoginValidation from '../hooks/useLoginValidation';
-import { GAME_OPTIONS } from '../constants';
+import { GAME_OPTIONS, PLAYER_STATUS } from '../constants';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
-  const { players, registerPlayer, currentPlayer } = useGame();
+  const { players, updatePlayerList, currentPlayer } = useGame();
 
   // Filter out current player from validation to avoid duplicate error on re-login
   const playersForValidation = players.filter(player => 
@@ -38,17 +38,14 @@ export default function LoginPage() {
 
   const handleSubmit = (e) => {
     e?.preventDefault();
-    
     // Trigger display of all errors
     formFocused();
-    
     if (!isFormValid) {
       return;
     }
-
     const name = username.trim();
-    const player = { id: generateId(), username: name, score: 0 };
-    registerPlayer(player);
+    const player = { id: generateId(), username: name, status: PLAYER_STATUS.IDLE, score: 0 };
+    updatePlayerList(player, true); // Set user as the current player
     navigate('/lobby');
   };
 

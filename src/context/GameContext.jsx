@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { getChannel } from '../services/bus';
 import { getPlayers, savePlayers, removePlayerById } from '../services/storage';
 import { WAIT_QUEUE_KEY, PLAYER_STATUS, CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
@@ -35,20 +35,18 @@ export function GameProvider({ children }) {
   const broadcastPlayers = (updated) => {
     savePlayers(updated);
     setPlayers(updated);
+    // Updates the player list across other tabs
     channelRef.current?.postMessage({ type: MESSAGE_TYPES.PLAYER_LIST_UPDATE, payload: { players: updated } });
   };
 
-  const registerPlayer = (player) => {
+  const updatePlayerList = (player, isCurrentPlayer = false) => {
     try {
       sessionStorage.setItem(CURRENT_PLAYER_KEY, JSON.stringify(player));
     } catch {}
-    setCurrentPlayer(player);
-    const existing = getPlayers();
-    const updated = existing.some((p) => p.id === player.id)
-      ? existing.map((p) => (p.id === player.id ? { ...p, username: player.username } : p))
-      : existing.concat({ ...player, status: PLAYER_STATUS.IDLE, score: player.score || 0 });
-
-    broadcastPlayers(updated);
+    if (isCurrentPlayer) {
+      setCurrentPlayer(player);
+    }
+    broadcastPlayers([...players, player]);
   };
 
   const logout = () => {
@@ -63,7 +61,7 @@ export function GameProvider({ children }) {
   };
 
   const startGame = (p1, p2) => {
-    const updated = getPlayers().map((p) =>
+    const updated = players.map((p) =>
       p.id === p1.id ? { ...p, status: PLAYER_STATUS.IN_GAME } : p.id === p2.id ? { ...p, status: PLAYER_STATUS.IN_GAME } : p
     );
     broadcastPlayers(updated);
@@ -81,9 +79,10 @@ export function GameProvider({ children }) {
         const [a, b] = prev.players;
         result = decideWinner(a.id, newChoices[a.id], b.id, newChoices[b.id]);
         if (result !== 'draw') {
-          const updatedPlayers = getPlayers().map((pl) =>
+          const updatedPlayers = players.map((pl) =>
             pl.id === result ? { ...pl, score: (pl.score || 0) + 1 } : pl
           );
+          console.log("==>new choices",newChoices, updatedPlayers )
           broadcastPlayers(updatedPlayers);
         }
       }
@@ -99,7 +98,7 @@ export function GameProvider({ children }) {
   const exitGame = () => {
     if (!activeGame) return;
     const [p1, p2] = activeGame.players;
-    const updated = getPlayers().map((p) =>
+    const updated = players.map((p) =>
       p.id === p1.id || p.id === p2.id ? { ...p, status: PLAYER_STATUS.IDLE } : p
     );
     broadcastPlayers(updated);
@@ -170,7 +169,7 @@ export function GameProvider({ children }) {
               result = decideWinner(a.id, choices[a.id], b.id, choices[b.id]);
 
               if (result !== 'draw') {
-                const updatedPlayers = getPlayers().map((pl) =>
+                const updatedPlayers = players.map((pl) =>
                   pl.id === result ? { ...pl, score: (pl.score || 0) + 1 } : pl
                 );
                 broadcastPlayers(updatedPlayers);
@@ -182,7 +181,7 @@ export function GameProvider({ children }) {
 
         case MESSAGE_TYPES.EXIT_GAME:
           setActiveGame(null);
-          const updated = getPlayers().map((p) =>
+          const updated = players.map((p) =>
             payload.players.find((pl) => pl.id === p.id) ? { ...p, status: PLAYER_STATUS.IDLE } : p
           );
           broadcastPlayers(updated);
@@ -228,7 +227,7 @@ export function GameProvider({ children }) {
       value={{
         players,
         currentPlayer,
-        registerPlayer,
+        updatePlayerList,
         logout,
         invitePlayer: (opponent) => invitePlayer(currentPlayer, opponent),
         pendingInvite,

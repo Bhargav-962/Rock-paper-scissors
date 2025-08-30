@@ -1,8 +1,8 @@
-import { STORAGE_KEY } from '../constants';
+import { PLAYERS_LIST } from '../constants';
 
 export function getPlayers() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(PLAYERS_LIST);
     return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
@@ -11,7 +11,7 @@ export function getPlayers() {
 
 export function savePlayers(players) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(players));
+    localStorage.setItem(PLAYERS_LIST, JSON.stringify(players));
   } catch {}
 }
 

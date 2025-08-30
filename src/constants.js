@@ -1,5 +1,5 @@
 export const CHANNEL_NAME = 'game_channel';
-export const STORAGE_KEY = 'players_list';
+export const PLAYERS_LIST = 'players_list';
 export const WAIT_QUEUE_KEY = 'waiting_queue';
 export const CURRENT_PLAYER_KEY = 'current_player';
 
