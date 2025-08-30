@@ -108,6 +108,11 @@ export default function LoginPage() {
                     fullWidth
                     required
                     autoFocus
+                    slotProps={{
+                      htmlInput: {
+                        maxLength: 30
+                      }
+                    }}
                     error={displayErrors.username && validationErrors.username.length > 0}
                     helperText={
                       displayErrors.username && validationErrors.username.length > 0
