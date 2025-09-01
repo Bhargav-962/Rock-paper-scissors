@@ -3,7 +3,7 @@ import {
   RESET_ROUND,
   SET_CURRENT_PLAYER,
   SET_PLAYER_LIST,
-  UPDATE_PARTICIPANTS_LIST,
+  START_NEW_GAME,
   UPDATE_USER_CHOICES,
   UPDATE_USER_RESULT
 } from "../reducer/types";
@@ -17,8 +17,8 @@ export const updateCurrentPlayer = (dispatch) => (payload) => {
   dispatch({ type: SET_CURRENT_PLAYER, payload });
 };
 
-export const updateGameParticipants = (dispatch) => (payload) => {
-  dispatch({ type: UPDATE_PARTICIPANTS_LIST, payload });
+export const createNewGame = (dispatch) => (payload) => {
+  dispatch({ type: START_NEW_GAME, payload });
 };
 
 export const destroyCurrentGame = (dispatch) => () => {

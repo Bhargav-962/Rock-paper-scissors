@@ -1,25 +1,25 @@
 import { createContext, useContext, useEffect, useReducer, useRef } from 'react';
 import { getChannel } from '../services/bus';
 import { removePlayerById } from '../services/storage';
-import { CURRENT_PLAYER_KEY, MESSAGE_TYPES } from '../constants';
+import { CURRENT_PLAYER_KEY, MESSAGE_TYPES, PLAYER_STATUS } from '../constants';
 import { broadcastPlayerListUpdate, addMessageListener } from '../utils/broadcast';
 import { gameReducer, initialState } from '../reducer/reducer';
 import { useCommonFunctions } from '../hooks/useCommonFunctions';
 import {
   updatePlayersList,
-  updateGameParticipants,
+  createNewGame,
   destroyCurrentGame,
   updateUserChoices,
   updateUserResult,
   resetGameState,
-  updateCurrentPlayer
 } from '../actions/gameActions';
 
 const GameContext = createContext();
 
 export function GameProvider({ children }) {
   const [state, dispatch] = useReducer(gameReducer, initialState);
-  const { currentPlayer, players, activeGame } = state;
+  const { currentPlayerId, players, activeGame } = state;
+  console.log("==>state", state);
   const channelRef = useRef(getChannel());
   const {
     registerPlayer,
@@ -29,6 +29,7 @@ export function GameProvider({ children }) {
     resetRound,
     exitGame,
     forfeitGame,
+    currentPlayer
   } = useCommonFunctions(state, dispatch, channelRef.current);
 
   useEffect(() => {
@@ -36,39 +37,58 @@ export function GameProvider({ children }) {
       const { type, payload } = ev.data || ev;
 
       switch (type) {
-        case MESSAGE_TYPES.PLAYER_LIST_UPDATE:
-          updatePlayersList(dispatch)(payload.players);
+        case MESSAGE_TYPES.PLAYER_LIST_UPDATE: {
+          const updatedPlayers = payload.players;
+          updatePlayersList(dispatch)(updatedPlayers);
           break;
+        }
 
-        case MESSAGE_TYPES.START_GAME:
-          const { participants: gamePlayers } = payload;
-          const currentUser = gamePlayers.find(p => p.id === currentPlayer?.id);
-          if (currentUser) {
-            updateGameParticipants(dispatch)(gamePlayers);
-            updateCurrentPlayer(dispatch)(currentUser);
+        case MESSAGE_TYPES.START_GAME: {
+          const { participants: gamePlayers, gameId } = payload;
+          console.log("==>start", gamePlayers, currentPlayerId);
+          const isCurrentUserInvited = gamePlayers.find(p => p.id === currentPlayerId);
+          if (isCurrentUserInvited) {
+            createNewGame(dispatch)({ participants: gamePlayers, gameId });
           }
           break;
+        }
 
-        case MESSAGE_TYPES.CHOICE_SUBMITTED:
-          updateUserChoices(dispatch)(payload.choices);
-          updateUserResult(dispatch)(payload.result);
+        case MESSAGE_TYPES.CHOICE_SUBMITTED: {
+          const { choices, result, gameId } = payload;
+          const isActiveGameParticipant = activeGame.gameId  === gameId;
+          console.log("==>choice", state, choices);
+          if (isActiveGameParticipant) { // Update game choices only for participants
+            updateUserChoices(dispatch)(choices);
+            updateUserResult(dispatch)(result);
+          }
           break;
+        }
 
-        case MESSAGE_TYPES.EXIT_GAME:
-          destroyCurrentGame(dispatch)();
+        case MESSAGE_TYPES.EXIT_GAME: {
+          const { gameId } = payload;
+          const isActiveGameParticipant = activeGame.gameId  === gameId;
+          if (isActiveGameParticipant) { // Update game choices only for participants
+            destroyCurrentGame(dispatch)();
+          }
           break;
+        }
 
-        case MESSAGE_TYPES.RESET_ROUND:
-          resetGameState(dispatch)();
+        case MESSAGE_TYPES.RESET_ROUND: {
+          const { gameId } = payload;
+          const isActiveGameParticipant = activeGame.gameId  === gameId;
+          if (isActiveGameParticipant) {
+            resetGameState(dispatch)();
+          }
           break;
+        }
 
-        case MESSAGE_TYPES.FORFEIT_GAME:
-          const { forfeiter, winner } = payload;
-          // Update winner's score if this is not the forfeiter's tab
-          if (currentPlayer?.id !== forfeiter.id) {
+        case MESSAGE_TYPES.FORFEIT_GAME: {
+          const { winner, gameId } = payload;
+          if (gameId === activeGame.gameId) {
             updateUserResult(dispatch)(winner.id);
           }
           break;
+        }
 
         default:
           // Unknown message type, ignore
@@ -78,7 +98,7 @@ export function GameProvider({ children }) {
 
     const removeListener = addMessageListener(channelRef.current, handler);
     return removeListener;
-  }, [currentPlayer?.id]);
+  }, [currentPlayerId, activeGame.gameId]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -102,6 +122,7 @@ export function GameProvider({ children }) {
       value={{
         players,
         currentPlayer,
+        currentPlayerId,
         registerPlayer,
         logout,
         playGame,

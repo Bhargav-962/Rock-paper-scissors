@@ -7,37 +7,38 @@ export const broadcastPlayerListUpdate = (channel, players) => {
   });
 };
 
-export const broadcastStartGame = (channel, participants) => {
+export const broadcastStartGame = (channel, participants, gameId) => {
   channel?.postMessage({
     type: MESSAGE_TYPES.START_GAME,
-    payload: { participants }
+    payload: { participants, gameId }
   });
 };
 
-export const broadcastChoiceSubmitted = (channel, choices, result) => {
+export const broadcastChoiceSubmitted = ({ channel, choices, result, gameId }) => {
   channel?.postMessage({
     type: MESSAGE_TYPES.CHOICE_SUBMITTED,
-    payload: { choices, result }
+    payload: { choices, result, gameId }
   });
 };
 
-export const broadcastResetRound = (channel) => {
+export const broadcastResetRound = (channel, gameId) => {
   channel?.postMessage({
-    type: MESSAGE_TYPES.RESET_ROUND
+    type: MESSAGE_TYPES.RESET_ROUND,
+    payload: { gameId }
   });
 };
 
-export const broadcastExitGame = (channel, players) => {
+export const broadcastExitGame = (channel, players, gameId) => {
   channel?.postMessage({
     type: MESSAGE_TYPES.EXIT_GAME,
-    payload: { players }
+    payload: { players, gameId }
   });
 };
 
-export const broadcastForfeitGame = (channel, forfeiter, winner) => {
+export const broadcastForfeitGame = ({ channel, winner, gameId }) => {
   channel?.postMessage({
     type: MESSAGE_TYPES.FORFEIT_GAME,
-    payload: { forfeiter, winner }
+    payload: { winner, gameId }
   });
 };
 

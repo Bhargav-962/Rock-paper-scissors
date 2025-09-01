@@ -4,12 +4,13 @@ import { PLAYER_STATUS } from "../constants";
 import {
   updatePlayersList,
   updateCurrentPlayer,
-  updateGameParticipants,
+  createNewGame,
   destroyCurrentGame,
   updateUserChoices,
   updateUserResult,
   resetGameState
 } from "../actions/gameActions";
+import { generateRandomId } from "../utils/player";
 
 const decideWinner = (id1, c1, id2, c2) => {
   if (c1 === c2) return 'draw';
@@ -24,7 +25,8 @@ const decideWinner = (id1, c1, id2, c2) => {
 };
 
 export function useCommonFunctions(state, dispatch, channel) {
-  const { currentPlayer, players, activeGame } = state;
+  const { currentPlayerId, players, activeGame } = state;
+  const currentPlayer = players.find(p => p.id === currentPlayerId);
 
   const updatePlayerList = (players) => {
     savePlayerListToStorage(players);
@@ -40,21 +42,21 @@ export function useCommonFunctions(state, dispatch, channel) {
     const updatedParticipantsList = participants.map(player => {
       return { ...player, status: PLAYER_STATUS.IN_GAME };
     });
-
+    const gameId = generateRandomId()
     // Notify other tabs about the game start
-    broadcastStartGame(channel, updatedParticipantsList);
+    broadcastStartGame(channel, updatedParticipantsList, gameId);
     const updatedPlayersList = players.map(player =>
       updatedParticipantsList.find(p => p.id === player.id) || player
     );
     updatePlayerList(updatedPlayersList); // Update status for active participants
-    updateCurrentPlayer(dispatch)(updatedParticipantsList[0]);
-    updateGameParticipants(dispatch)(updatedParticipantsList);
+    createNewGame(dispatch)({ participants: updatedParticipantsList, gameId });
   };
 
   // Updates player list for current user and broadcasts it to other users
   const registerPlayer = (player) => {
-    saveCurrentPlayerToStorage(player);
-    updateCurrentPlayer(dispatch)(player);
+    saveCurrentPlayerToStorage(player.id);
+    console.log("==>register", player.id);
+    updateCurrentPlayer(dispatch)(player.id);
     updatePlayerList([...players, player]);
   };
 
@@ -89,12 +91,17 @@ export function useCommonFunctions(state, dispatch, channel) {
       finalResult = computeResultsBasedOnChoices(newChoices);
     }
     // Broadcast the choice submission to other tabs
-    broadcastChoiceSubmitted(channel, newChoices, finalResult);
+    broadcastChoiceSubmitted({
+      channel,
+      choices: newChoices,
+      result: finalResult,
+      gameId: activeGame.gameId
+    });
   };
 
   const resetRound = () => {
     resetGameState(dispatch)();
-    broadcastResetRound(channel);
+    broadcastResetRound(channel, activeGame.gameId);
   };
 
   const exitGame = () => {
@@ -105,7 +112,7 @@ export function useCommonFunctions(state, dispatch, channel) {
     );
     updatePlayerList(updated);
     destroyCurrentGame(dispatch)();
-    broadcastExitGame(channel, [p1, p2]);
+    broadcastExitGame(channel, [p1, p2], activeGame.gameId);
   };
 
   const forfeitGame = () => {
@@ -124,7 +131,11 @@ export function useCommonFunctions(state, dispatch, channel) {
     updateUserResult(dispatch)(opponent.id);
     
     // Broadcast the forfeit to other tabs
-    broadcastForfeitGame(channel, currentPlayer, opponent);
+    broadcastForfeitGame({
+      channel,
+      winner: opponent,
+      gameId: activeGame.gameId
+    });
   };
 
   return {
@@ -135,5 +146,6 @@ export function useCommonFunctions(state, dispatch, channel) {
     resetRound,
     exitGame,
     forfeitGame,
+    currentPlayer
   };
 }

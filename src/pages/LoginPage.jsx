@@ -16,18 +16,18 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameContext';
-import { generateId } from '../utils/id';
 import useLoginValidation from '../hooks/useLoginValidation';
 import { GAME_OPTIONS, PLAYER_STATUS } from '../constants';
+import { generateRandomId } from '../utils/player';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const navigate = useNavigate();
-  const { players, registerPlayer, currentPlayer } = useGame();
+  const { players, registerPlayer, currentPlayerId } = useGame();
 
   // Filter out current player from validation to avoid duplicate error on re-login
   const playersForValidation = players.filter(player => 
-    !currentPlayer || player.id !== currentPlayer.id
+    !currentPlayerId || player.id !== currentPlayerId
   );
 
   // Use validation hook
@@ -44,7 +44,7 @@ export default function LoginPage() {
       return;
     }
     const name = username.trim();
-    const player = { id: generateId(), username: name, status: PLAYER_STATUS.IDLE, score: 0 };
+    const player = { id: generateRandomId(), username: name, status: PLAYER_STATUS.IDLE, score: 0 };
     registerPlayer(player);
     navigate('/lobby');
   };

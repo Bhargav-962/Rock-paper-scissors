@@ -10,24 +10,15 @@ export function getPlayerListFromStorage() {
 }
 
 export function getCurrentPlayerFromStorage() {
-  try {
-    const raw = sessionStorage.getItem(CURRENT_PLAYER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
+  return sessionStorage.getItem(CURRENT_PLAYER_KEY);
 }
 
 export function saveCurrentPlayerToStorage(player) {
-  try {
-    sessionStorage.setItem(CURRENT_PLAYER_KEY, JSON.stringify(player));
-  } catch {}
+  sessionStorage.setItem(CURRENT_PLAYER_KEY, player);
 }
 
 export function removeCurrentPlayerFromStorage() {
-  try {
-    sessionStorage.removeItem(CURRENT_PLAYER_KEY);
-  } catch {}
+  sessionStorage.removeItem(CURRENT_PLAYER_KEY);
 }
 
 export function savePlayerListToStorage(players) {

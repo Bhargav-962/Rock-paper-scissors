@@ -1,11 +1,11 @@
 import { Box, Typography, Fade } from '@mui/material';
 import { styles } from './GameArea.styles';
 
-const GameResult = ({ result, currentPlayer, opponent, myChoice, oppChoice }) => {
+const GameResult = ({ result, currentPlayerId, opponent, myChoice, oppChoice }) => {
   const getResultText = (opponentName) => {
     if (!result) return `Waiting for ${opponentName} to choose...`;
     if (result === 'draw') return 'It\'s a Draw!';
-    if (result === currentPlayer.id) {
+    if (result === currentPlayerId) {
       // Check if this was a forfeit win
       if (!myChoice && !oppChoice) {
         return `${opponentName} Forfeited - You Win!`;
@@ -22,7 +22,7 @@ const GameResult = ({ result, currentPlayer, opponent, myChoice, oppChoice }) =>
   const getResultColor = () => {
     if (!result) return 'text.secondary';
     if (result === 'draw') return 'warning.main';
-    if (result === currentPlayer.id) return 'success.main';
+    if (result === currentPlayerId) return 'success.main';
     return 'error.main';
   };
 
@@ -40,7 +40,7 @@ const GameResult = ({ result, currentPlayer, opponent, myChoice, oppChoice }) =>
         </Typography>
         {result && result !== 'draw' && (
           <Typography variant="body2" color="text.secondary">
-            {result === currentPlayer.id ? 'Excellent choice!' : 'Better luck next time!'}
+            {result === currentPlayerId ? 'Excellent choice!' : 'Better luck next time!'}
           </Typography>
         )}
       </Box>

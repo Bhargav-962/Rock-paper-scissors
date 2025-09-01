@@ -1,15 +1,16 @@
 import { getCurrentPlayerFromStorage, getPlayerListFromStorage } from "../services/storage";
-import { DESTROY_ACTIVE_GAME, RESET_ROUND, SET_CURRENT_PLAYER, SET_PLAYER_LIST, UPDATE_PARTICIPANTS_LIST, UPDATE_USER_CHOICES, UPDATE_USER_RESULT } from "./types";
+import { DESTROY_ACTIVE_GAME, RESET_ROUND, SET_CURRENT_PLAYER, SET_PLAYER_LIST, START_NEW_GAME, UPDATE_USER_CHOICES, UPDATE_USER_RESULT } from "./types";
 
 const activeGameInitial = {
     participants: [],
     choices: {},
-    result: null
+    result: null,
+    gameId: null
 };
 
 export const initialState = {
     players: getPlayerListFromStorage(),
-    currentPlayer: getCurrentPlayerFromStorage(),
+    currentPlayerId: getCurrentPlayerFromStorage(),
     activeGame: activeGameInitial
 };
 
@@ -19,12 +20,15 @@ export const gameReducer = (state = initialState, action) => {
             return { ...state, players: action.payload };
 
         case SET_CURRENT_PLAYER:
-            return { ...state, currentPlayer: action.payload };
-
-        case UPDATE_PARTICIPANTS_LIST:
+            return { ...state, currentPlayerId: action.payload };
+        case START_NEW_GAME:
             return {
                 ...state,
-                activeGame: { ...state.activeGame, participants: action.payload }
+                activeGame: {
+                    ...state.activeGame,
+                    participants: action.payload.participants,
+                    gameId: action.payload.gameId
+                }
             };
 
         case DESTROY_ACTIVE_GAME:

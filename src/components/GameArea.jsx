@@ -18,20 +18,20 @@ import GameActions from './GameActions';
 import { styles } from './GameArea.styles';
 
 const GameArea = () => {
-  const { currentPlayer, activeGame, submitChoice, resetRound, exitGame, forfeitGame } = useGame();
+  const { currentPlayerId, activeGame, submitChoice, resetRound, exitGame, forfeitGame } = useGame();
   const [showHint, setShowHint] = useState(false);
 
-  if (!activeGame.participants.length || !currentPlayer) {
+  if (!activeGame.participants.length || !currentPlayerId) {
     return <GameEmptyState />;
   }
 
-  const opponent = activeGame.participants.find((p) => p.id !== currentPlayer.id);
-  const myChoice = activeGame.choices?.[currentPlayer.id];
+  const opponent = activeGame.participants.find((p) => p.id !== currentPlayerId);
+  const myChoice = activeGame.choices?.[currentPlayerId];
   const oppChoice = activeGame.choices?.[opponent.id];
   const { result } = activeGame;
 
   const handleChoice = (choice) => {
-    submitChoice(currentPlayer.id, choice);
+    submitChoice(currentPlayerId, choice);
   };
 
   const bothPlayersChosen = myChoice && oppChoice;
@@ -90,7 +90,7 @@ const GameArea = () => {
 
               <GameResult 
                 result={result}
-                currentPlayer={currentPlayer}
+                currentPlayerId={currentPlayerId}
                 opponent={opponent}
                 myChoice={myChoice}
                 oppChoice={oppChoice}

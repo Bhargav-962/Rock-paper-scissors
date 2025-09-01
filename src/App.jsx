@@ -4,8 +4,9 @@ import LoginPage from './pages/LoginPage';
 import LobbyPage from './pages/LobbyPage';
 
 function ProtectedRoute({ children }) {
-  const { currentPlayer } = useGame();
-  if (!currentPlayer) {
+  const { currentPlayerId } = useGame();
+
+  if (!currentPlayerId) {
     return <Navigate to="/login" replace />;
   }
   return children;

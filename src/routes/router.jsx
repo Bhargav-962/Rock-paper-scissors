@@ -4,13 +4,13 @@ import LobbyPage from '../pages/LobbyPage.jsx';
 import { useGame } from '../context/GameContext.jsx';
 
 export default function Router() {
-  const { currentPlayer } = useGame();
+  const { currentPlayerId } = useGame();
 
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/lobby" element={currentPlayer ? <LobbyPage /> : <Navigate to="/login" replace />} />
-      <Route path="/" element={<Navigate to={currentPlayer ? '/lobby' : '/login'} replace />} />
+      <Route path="/lobby" element={currentPlayerId ? <LobbyPage /> : <Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to={currentPlayerId ? '/lobby' : '/login'} replace />} />
     </Routes>
   );
 }

@@ -3,9 +3,9 @@ import { Paper, Stack, Typography } from '@mui/material';
 import { useGame } from '../context/GameContext';
 
 export default function Leaderboard() {
-  const { players, currentPlayer } = useGame();
+  const { players, currentPlayerId } = useGame();
   const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-  const isCurrentPlayerInGame = (id) => id === currentPlayer?.id;
+  const isCurrentPlayerInGame = (id) => id === currentPlayerId;
 
   return (
     <Paper sx={{ p: 2, minWidth: '300px' }}>
